@@ -94,7 +94,66 @@ a:hover {
 }
 
 .intro {
-  margin-bottom: 48px;
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(28px, 6vw, 48px);
+  margin: 54px 0 72px;
+}
+
+.profile-avatar {
+  width: clamp(136px, 24vw, 168px);
+  height: clamp(136px, 24vw, 168px);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.profile-image {
+  display: block;
+  width: 116%;
+  height: 116%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 56%;
+  transform: translate(-6%, -6%);
+}
+
+.profile-copy {
+  min-width: 0;
+}
+
+.profile-details {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.profile-details div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.profile-details dt {
+  color: var(--muted);
+  font-weight: 650;
+  text-transform: lowercase;
+}
+
+.profile-name {
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.profile-details dd {
+  margin: 0;
+  color: var(--muted);
+}
+
+.profile-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .intro h1,
@@ -283,5 +342,16 @@ a:hover {
 
   .site-main {
     padding-top: 36px;
+  }
+
+  .intro {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-top: 24px;
+  }
+
+  .profile-details div {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 }

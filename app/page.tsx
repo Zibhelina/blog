@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import catProfile from "../cat-profile.png";
 import { formatDate, getAllProjects, getLatestPosts, toIsoDate } from "@/lib/content";
 
 export default async function HomePage() {
@@ -6,9 +8,39 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="intro">
-        <h1>João</h1>
-        <p>A small place for notes, projects, and experiments.</p>
+      <section className="intro" aria-labelledby="profile-name">
+        <div className="profile-avatar" aria-hidden="true">
+          <Image
+            className="profile-image"
+            src={catProfile}
+            alt=""
+            priority
+            sizes="(max-width: 600px) 144px, 168px"
+          />
+        </div>
+        <div className="profile-copy">
+          <dl className="profile-details" aria-label="Profile details">
+            <div>
+              <dt>name:</dt>
+              <dd className="profile-name" id="profile-name">Joao Henrique</dd>
+            </div>
+            <div>
+              <dt>about me:</dt>
+              <dd>A computer science student building small tools, writing notes, and experimenting with local-first AI workflows.</dd>
+            </div>
+            <div>
+              <dt>links:</dt>
+              <dd className="profile-links">
+                <a href="https://github.com/" rel="noreferrer" target="_blank">
+                  GitHub
+                </a>
+                <a href="https://www.linkedin.com/in/joao-araujo-098652195/" rel="noreferrer" target="_blank">
+                  LinkedIn
+                </a>
+              </dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
       <section className="section" aria-labelledby="latest-posts">
