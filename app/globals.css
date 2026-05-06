@@ -332,26 +332,81 @@ a:hover {
 @media (max-width: 600px) {
   body {
     font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .site-nav,
+  .site-main {
+    width: min(100% - 40px, 740px);
   }
 
   .site-nav {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
+    align-items: baseline;
+    flex-direction: row;
+    gap: 16px;
+    padding: 16px 0;
+  }
+
+  .site-links {
+    gap: 12px;
   }
 
   .site-main {
-    padding-top: 36px;
+    padding: 28px 0 56px;
   }
 
   .intro {
     grid-template-columns: 1fr;
-    gap: 24px;
-    margin-top: 24px;
+    align-items: start;
+    gap: 18px;
+    margin: 18px 0 48px;
+  }
+
+  .profile-avatar {
+    width: 112px;
+    height: 112px;
+  }
+
+  .profile-details {
+    gap: 8px;
   }
 
   .profile-details div {
-    grid-template-columns: 1fr;
-    gap: 2px;
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .profile-details dt,
+  .profile-details dd {
+    font-size: 0.95rem;
+  }
+
+  .profile-links {
+    gap: 10px;
+  }
+
+  .section {
+    margin-top: 36px;
+  }
+
+  .section-header {
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .site-nav {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .profile-avatar {
+    width: 104px;
+    height: 104px;
+  }
+
+  .profile-details div {
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 }

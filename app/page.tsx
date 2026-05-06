@@ -15,7 +15,7 @@ export default async function HomePage() {
             src={catProfile}
             alt=""
             priority
-            sizes="(max-width: 600px) 144px, 168px"
+            sizes="(max-width: 600px) 112px, 168px"
           />
         </div>
         <div className="profile-copy">
