@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HeroScramble } from "@/components/hero-scramble";
 import { formatDate, getAllProjects, getLatestPosts, toIsoDate } from "@/lib/content";
 
 function GitHubIcon() {
@@ -63,15 +64,7 @@ export default async function HomePage() {
   return (
     <>
       <section className="hero" aria-labelledby="hero-title">
-        <h1 className="hero-title" id="hero-title" aria-label="Hi, I'm João.">
-          <span>Hi, I&apos;m </span>
-          <span className="hero-name-wrap">
-            <span className="hero-name glitch-name" data-text="João">
-              João
-            </span>
-            <span className="hero-dot" aria-hidden="true" />
-          </span>
-        </h1>
+        <HeroScramble />
         <p>
           A computer science student building small tools, writing notes, and experimenting with
           local-first AI workflows.
