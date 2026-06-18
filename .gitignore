@@ -12,3 +12,11 @@ yarn-error.log*
 pnpm-debug.log*
 .DS_Store
 *.tsbuildinfo
+
+# local preview server (Hermes-run LaunchAgent)
+preview-server.log
+preview-server.error.log
+dev-3001.log
+
+# Hermes project stub
+context.md

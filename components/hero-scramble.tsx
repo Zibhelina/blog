@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const PHRASES = ["Hi, I'm Joao", "Welcome!"] as const;
+const PHRASES = ["Hi, I'm João", "Welcome!"] as const;
 const SCRAMBLE_CHARS = "#$%&/;:!?*+=-_";
 const HOLD_MS = 1500;
 const FRAME_MS = 42;
@@ -108,9 +108,9 @@ export function HeroScramble() {
   }, []);
 
   return (
-    <h1 className="hero-title" id="hero-title" aria-label="Hi, I'm Joao. Welcome!">
+    <h1 className="hero-title" id="hero-title" aria-label="Hi, I'm João. Welcome!">
       <span aria-hidden="true" className="hero-scramble-text" ref={textRef}>
-        {"Hi, I'm Joao"}
+        {"Hi, I'm João"}
       </span>
       <span className="hero-dot" aria-hidden="true" ref={dotRef} />
     </h1>

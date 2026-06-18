@@ -5,6 +5,7 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 import { mdxComponents } from "@/components/mdx-components";
+import { PostTitleScramble } from "@/components/post-title-scramble";
 import type { BlogPost } from "@/lib/content";
 import { formatDate, getAllPosts, getPostBySlug, toIsoDate } from "@/lib/content";
 
@@ -72,7 +73,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <time className="meta" dateTime={toIsoDate(post.date)}>
           {formatDate(post.date)}
         </time>
-        <h1>{post.title}</h1>
+        <PostTitleScramble title={post.title} />
         {post.description ? <p>{post.description}</p> : null}
         {languageVersions ? (
           <nav className="language-switcher" aria-label="Language versions">

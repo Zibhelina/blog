@@ -298,6 +298,11 @@ button:focus-visible {
   flex: 0 0 auto;
 }
 
+.social-icon.kofi-icon {
+  width: 26px;
+  height: 26px;
+}
+
 .kofi-icon {
   color: var(--foreground);
 }
@@ -780,3 +785,40 @@ button:focus-visible {
     align-self: flex-start;
   }
 }
+
+.support-callout {
+  margin-top: 40px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border-soft);
+  color: var(--muted);
+}
+
+.support-callout p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.support-link {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  text-decoration: none;
+}
+
+.support-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  vertical-align: middle;
+  transition: transform 0.15s ease;
+}
+
+.support-link:hover .support-icon {
+  transform: translateY(-2px) scale(1.12);
+}
+
+.support-callout .kofi-icon {
+  color: var(--foreground);
+}
+

@@ -1,15 +1,11 @@
 ---
-title: "Cérebro e aprendizado"
+title: "O cérebro e como eu aprendo"
 date: "17-06-2026"
 tags: []
 draft: false
 ---
 
-> Note 1: Tudo isso que eu escrevi abaixo foram coisas que eu li e pensei a respeito enquanto eu tava no metrô indo pra casa. Tem algumas sentenças avulsas, e a estrutura tá meio all over the place, mas tem informação interessante que aprendi e queria poder compartilhar pra talvez discutir sobre ou refinar o que eu mesmo sei sobre o cérebro.
->
-> Note 2: Eu não sou neurocientista (apesar de ter interesse no assunto), então pode ser que alguns dos detalhes do que eu falei aqui estejam incorretos. Se eu tô errado em alguma coisa, let me know.
-
-## Pensamentos mais ou menos desconexos sobre o cérebro
+## Como o cérebro funciona
 
 Tava pensando sobre como o cérebro funciona e como ele difere das LLMs que temos. Foi isso que me inspirou a pensar mais sobre o cérebro hoje.
 
@@ -19,31 +15,35 @@ Sabe quando as pessoas falam que a "working memory" só segura 7 +/- 2 conceitos
 
 O limite real da working memory tem raiz na interferência que um conceito causa no outro. Deixa eu esclarecer: se dois conceitos usam um padrão de ativação similar a ponto de interferirem um com o outro, eles não são ativados ao mesmo tempo, o que limita a quantidade de conceitos que você pode ter na sua working memory. Então o limite real é o quanto o seu cérebro consegue segurar sem interferência destrutiva. Talvez exista algo como interferência construtiva, onde o overlap mais ajuda do que atrapalha, mas não sei disso ainda.
 
-![imagem meramente ilustrativa](/blog/about-the-brain/pasted-image-20260617171409.png)
-caption: imagem meramente ilustrativa
+<BrainActivation />
 
 Baseado nisso, eu tenho uma hipótese de que talvez um dos truques pra manter mais conceitos não interferentes na memória seja o uso efetivo de uma "perspectiva". Deixa eu tentar esclarecer: o mesmo conceito pode ser interpretado de diferentes maneiras usando perspectivas diferentes, e isso muda o padrão de ativação neural do mesmo conceito. Se você souber usar a perspectiva certa de cada conceito, talvez você seja capaz de carregar mais coisas no seu working memory de uma vez. Exemplo: um vetor pode ser interpretado de várias maneiras. Alguns pensam em um vetor como uma seta em um espaço 1D, 2D, ou até multidimensional; outros pensam em vetor como uma sequência de números; outros pensam em vetores como um tipo de matriz; outros pensam em um vetor como um conjunto de características (features).
 
-Outra coisa que eu acho que muda sua capacidade de carregar mais conceitos no working memory é a experiência. Quanto mais experiência, melhor o cérebro fica em cortar os neurônios que não estão ajudando e otimizar um conceito que antes precisava de vários padrões de ativação de uma vez. Isso é o que eles chamam de chunking. Um mestre de xadrez consegue olhar pra um tabuleiro completo de uma vez e entender a situação prontamente, enquanto o novato veria várias peças diferentes e desconexas. A experiência é o nome que damos pro processo de otimização da informação carregada pelos padrões neurais. O cérebro fica menos dinâmico com a idade, mas, em compensação, fica mais eficiente. Esse é o trade-off.
+Outra coisa que muda sua capacidade de carregar mais conceitos no working memory é a experiência. Quanto mais experiência, melhor o cérebro fica em cortar os neurônios que não estão ajudando e otimizar um conceito que antes precisava de vários padrões de ativação de uma vez. Isso é o que eles chamam de chunking. Um mestre de xadrez consegue olhar pra um tabuleiro completo de uma vez e entender a situação prontamente, enquanto o novato veria várias peças diferentes e desconexas. A experiência é o nome que damos pro processo de otimização da informação carregada pelos padrões neurais. O cérebro fica menos dinâmico com a idade, mas, em compensação, fica mais eficiente. Esse é o trade-off.
 
 Hoje pensei também sobre a diferença entre como uma LLM processa informação vs. o nosso cérebro. Uma LLM tem uma atenção perfeita a um custo de computação caríssimo, O(n^2). O cérebro humano, em compensação, processa informação tipo ler um livro em O(1). O trade-off aqui é retenção de detalhe. Enquanto uma LLM lembra de cada palavra perfeitamente, o cérebro humano descarta os detalhes e comprime em streams de significado. Você não lembra de cada palavra de um parágrafo, você lembra do que o parágrafo significou. E, mais precisamente ainda, você tem memória da sequência de padrões neurais que foram ativados; uma servindo de cue para a próxima.
 
-E, diferente do que eu pensava, a memória do cérebro vem em três camadas em vez de duas, até onde eu sei e entendi. A "memória" mais imediata é a working memory: são os padrões, ou o set de conexões ativas, naquele momento. O medium-term memory é, até onde meu entendimento vai, o padrão de cargas elétricas do seu cérebro no dia. O long-term memory é o ajuste da grossura e das conexões dos neurônios em si. Então o long-term memory não é uma parte separada do cérebro, ela é a composição física dos neurônios. Você lembra de algo quando a conexão dos neurônios fica mais grossa, um path de menos resistência.
+E, diferente do que eu pensava, a memória do cérebro vem em três camadas em vez de duas. A "memória" mais imediata é a working memory: são os padrões, ou o set de conexões ativas, naquele momento. O medium-term memory seria o padrão de cargas elétricas do seu cérebro no dia. Dessas três, é a camada que eu menos tenho certeza; é mais interpretação minha do que ciência assentada. O long-term memory é o ajuste da grossura e das conexões dos neurônios em si. Então o long-term memory não é uma parte separada do cérebro, ela é a composição física dos neurônios. Você lembra de algo quando a conexão dos neurônios fica mais grossa, um path de menos resistência.
 
-Interessante é que descobri que sonhos estão relacionados ao processo de consolidação de memória. Quando você dorme, o cérebro pega o que tá na sua "memória RAM" (padrão de cargas do cérebro) e usa isso pra armazenar no hard drive (grossura e configuração das conexões). Quando esse processo acontece, seu cérebro dá um replay nas conexões neurais que ativaram enquanto você tava acordado. É certo que o sonho tem algo a ver com esse replay do dia, mas exatamente como ainda não é claro na ciência. Minha hipótese, e não só minha, é que o sonho é um artefato da reinterpretação emocional que o cérebro faz das informações comprimidas durante o dia. Ainda é difícil de explicar exatamente como um dia normal se transforma em uma criatura de 6 metros me perseguindo, mas um dia ruim pode ativar cargas neurais associadas a medo ou a uma situação perigosa, e isso vem a ser reinterpretado no cérebro durante a noite como algo muito mais tenebroso do que foi. Mas tudo isso ainda é especulação. A ciência sabe que tem alguma conexão, mas não exatamente como.
+Interessante é que descobri que sonhos estão relacionados ao processo de consolidação de memória. Quando você dorme, o cérebro pega o que tá na sua "memória RAM" (padrão de cargas do cérebro) e usa isso pra armazenar no hard drive (grossura e configuração das conexões). Quando esse processo acontece, seu cérebro dá um replay nas conexões neurais que ativaram enquanto você tava acordado. É certo que o sonho tem algo a ver com esse replay do dia, mas exatamente como ainda não é claro na ciência. Minha hipótese, e não só minha, é que o sonho é um artefato da reinterpretação emocional que o cérebro faz das informações comprimidas durante o dia. Ainda é difícil de explicar exatamente como um dia normal se transforma em uma criatura de 6 metros me perseguindo, mas um dia ruim pode ativar cargas neurais associadas a medo ou a uma situação perigosa, e isso vem a ser reinterpretado no cérebro durante a noite como algo muito mais tenebroso do que foi.
 
-## Como o cérebro aprende?
+## A estrutura vem depois
 
 Em uma tangente, eu refleti também sobre como o ser humano aprende. E o que eu aprendi sobre o cérebro teve efeito em como eu acho que o aprendizado pode ser feito mais efetivamente também. Uma lição dura que eu tirei dos meus anos de experiência tentando aprender coisas é que o aprendizado é por natureza meio fuzzy. O cérebro aloca mais recursos do que precisa (mais neurônios), a conexão entre os neurônios ainda não se estabeleceu, e você ainda não adquiriu habilidade de comprimir um cenário complexo em um padrão só de ativação neural, então você sente que você tá trabalhando em maximum capacity (porque você tá mesmo).
 
 A estrutura do conhecimento, como você classifica cada objeto dentro daquele sistema, como você representa e atribui significado para a interação daqueles objetos e do sistema (taxonomia), não tem que ser formada antes. A ordem, a organização que você tem clara na sua cabeça quando você adquire mastery do subject, vem apenas depois de você passar pelo processo de andar pela névoa, de passar pelo ruído. É análogo a como diffusion models funcionam em construir uma imagem. Eles começam com um grid de pixels completamente randomizado, aleatório, e fazem vários passes de processamento pra transformar noise em informação.
 
-![Processo de difusão transformando ruído em uma imagem de gato](/blog/about-the-brain/diffusion-model-cat-noise.png)
-caption: imagem via [NVIDIA Developer Blog](https://developer.nvidia.com/blog/improving-diffusion-models-as-an-alternative-to-gans-part-1/)
+<DiffusionCat />
 
 Eu sou bem culpado de tentar achar estrutura no conhecimento antes mesmo de ter visto sequer qualquer coisa dele. Mas essa tentação de achar estrutura é só um sintoma do fato de que aprender exige uma regulação emocional grande pra lidar com o desconforto de estar perdido. Mas, sabendo como o mecanismo funciona, é mais fácil lidar com isso. Certamente eu mudei depois que eu percebi isso.
 
-## Um método de aprender que eu descobri (talvez não seja tão revolucionário quanto eu acredito)
+E não me entenda errado; não tô dizendo que você não deve tentar achar estrutura no processo - isso é natural. Tô dizendo que você tem que aceitar que suas primeiras classificações vão estar bem erradas, e você tem que ter paciência de ajustar seu framework mental toda vez que uma nova informação vai contra o framework que você estabeleceu. E de vez em quando você é pego de surpresa quando descobre algo que você não tinha considerado no seu framework. Tem vezes que basta uma pergunta pra você questionar tudo que você já catalogou até hoje naquela área.
+
+Inclusive, essa área de catalogar e classificar coisas é surpreendentemente difícil e é justamente o que o povo que estuda o ramo de ontologia dentro de metafísica quebra a cabeça fazendo. Pra sentir um gostinho do que eu tô descrevendo, tenta pensar na classe de objeto "cadeira". Você tem uma ideia bem clara na sua mente sobre o que conta como uma cadeira, mas no momento que você tenta criar uma definição formal pra ela, você se depara com vários problemas. Nem toda cadeira tem quatro pernas, cadeiras podem ser feitas de diferentes materiais, nem toda cadeira precisa estar apoiada no chão, ou em algum lugar at all (pensa no espaço). Todas as características que você costuma associar com uma cadeira não são uma necessidade.
+
+E se esse for o caso, o que te sobra pra tentar definir o que uma cadeira é? Se você for mais pragmático que nem eu, você pode até pensar que uma cadeira pode ser definida pela sua utilidade, seu propósito, que é: cadeira é algo que você pode sentar em cima. Justo, mas daí uma mesa é uma cadeira? Eu tecnicamente posso sentar em uma mesa, posso sentar no chão, posso sentar em um planeta inteiro, e isso não faz dessa coisa uma cadeira. Então o problema de classificar coisas com precisão, como você pode ver com esse exemplo super simples, é super super difícil. E se é difícil com coisas tão concretas, você pode imaginar a dificuldade de estabelecer uma classificação clara com coisas mais abstratas... eu sofro com isso diariamente.
+
+## Um método pra digerir informação
 
 Recentemente eu achei um método bem interessante para digerir informação. Apesar de alguns detalhes serem muito específicos de como eu gosto de trabalhar e aprender, tenho certeza que alguma coisa boa você pode aproveitar daqui.
 
@@ -55,7 +55,7 @@ O ponto importante aqui é que você seja honesto com o que você fez e com o qu
 
 Uma das ferramentas mais interessantes e efetivas em aprender qualquer coisa são perguntas. Perguntas são para o conhecimento o que um cinzel é para uma escultura de mármore. Elas te ajudam no processo de de-noising da informação. Você começa em um assunto com uma ideia bem vaga, e as perguntas te ajudam a atribuir significado para aquele conceito, o processo de encoding da informação no cérebro. Esse é um dos motivos pelos quais exercícios são tão efetivos. Exercícios são probes do seu modelo mental. Fora que eles ajudam com a permanência da informação. Toda vez que você é obrigado a tirar informação do seu cérebro (recall), isso se torna um sinal mais forte na hora em que o cérebro faz a transição de memórias na RAM pra memória long-term.
 
-![](/blog/about-the-brain/pasted-image-20260617171653.png)
+<ConceptGraph />
 
 Esse é o documento onde você deve se sentir à vontade pra ser burro também. A ideia não é compartilhar o conteúdo dele; é ajudar você a entender onde você está, te ajudar a se concentrar no próximo passo e mais tarde te ajudar a sintetizar a informação que você já viu. A coisa legal de documentar o seu processo de aprendizagem dessa forma é que você pode olhar pra trás e ver onde você ficou preso, por quê, e o que te destravou.
 
@@ -146,4 +146,11 @@ $$
 
 </StudyLog>
 
-Agora, uma coisa bem mágica que você pode fazer uma vez que tem vários desses logs é usar uma inteligência artificial, mais particularmente um AI agent como Hermes, para depois te ajudar a formatar os arquivos, sintetizar informação que você já viu, revisar pontos de confusão e, no geral, te dar insights sobre o jeito que você raciocina. Não sugiro usar AI para mudar o conteúdo, o que tá escrito nos logs em si. Deixa a escrita intacta, é ali que a informação real vive. Transformar sua linha de raciocínio e aprendizado em um documento permite que você transforme seu conjunto de documentos em uma database. E, uma vez que você tem uma database, todo tipo de informação interessante aparece. Eu ainda tô nos early stages de explorar os dados do meu próprio aprendizado, então vou deixar amadurecer antes de compartilhar mais.
+Agora, uma coisa bem mágica que você pode fazer uma vez que tem vários desses logs é usar uma inteligência artificial, mais particularmente um AI agent como Hermes, para depois te ajudar a formatar os arquivos, sintetizar informação que você já viu, revisar pontos de confusão e, no geral, te dar insights sobre o jeito que você raciocina. Não sugiro usar AI para mudar o conteúdo, o que tá escrito nos logs em si. Deixa a escrita intacta, é ali que a informação real vive. Transformar sua linha de raciocínio e aprendizado em um documento permite que você transforme seu conjunto de documentos em uma database. E, uma vez que você tem uma database, todo tipo de informação interessante aparece.
+
+## Antes de você ir
+
+<SupportCallout
+  before="Se você gostou do que leu, considere me apoiar me dando dinheiro pelo"
+  middle="ou me dar um emprego"
+/>
