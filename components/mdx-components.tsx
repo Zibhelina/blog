@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { BrainActivation } from "@/components/applets/brain-activation";
 import { ConceptGraph } from "@/components/applets/concept-graph";
 import { DiffusionCat } from "@/components/applets/diffusion-cat";
+import { MandelbrotZoom } from "@/components/applets/mandelbrot-zoom";
 import { SupportCallout } from "@/components/applets/support-callout";
 
 export function Note({ children }: { children: ReactNode }) {
@@ -18,5 +19,6 @@ export const mdxComponents = {
   BrainActivation,
   ConceptGraph,
   DiffusionCat,
+  MandelbrotZoom,
   SupportCallout
 };
