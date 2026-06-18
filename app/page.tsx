@@ -33,7 +33,7 @@ function KofiIcon() {
       />
       <path
         d="M10.7 14.15 8.52 11.9a1.34 1.34 0 0 1 1.9-1.9l.28.28.28-.28a1.34 1.34 0 1 1 1.9 1.9l-2.18 2.25Z"
-        fill="#ff5f5f"
+        fill="var(--accent-red)"
       />
     </svg>
   );
@@ -63,7 +63,15 @@ export default async function HomePage() {
   return (
     <>
       <section className="hero" aria-labelledby="hero-title">
-        <h1 id="hero-title">Hi, I&apos;m João.</h1>
+        <h1 className="hero-title" id="hero-title" aria-label="Hi, I'm João.">
+          <span>Hi, I&apos;m </span>
+          <span className="hero-name-wrap">
+            <span className="hero-name glitch-name" data-text="João">
+              João
+            </span>
+            <span className="hero-dot" aria-hidden="true" />
+          </span>
+        </h1>
         <p>
           A computer science student building small tools, writing notes, and experimenting with
           local-first AI workflows.
@@ -79,8 +87,6 @@ export default async function HomePage() {
           ))}
         </ul>
       </section>
-
-      <div className="home-divider" aria-hidden="true" />
 
       <section className="section" aria-labelledby="latest-posts">
         <div className="section-header">
