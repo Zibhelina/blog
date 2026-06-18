@@ -265,7 +265,7 @@ function injectStyles() {
     .cg3-wrapper.cg3-dragging { cursor: grabbing; }
     .cg3-canvas-host { position: absolute; inset: 0; }
     .cg3-canvas-host canvas { display: block; }
-    .cg3-labels { position: absolute; inset: 0; overflow: visible; z-index: 2; pointer-events: none; }
+    .cg3-labels { position: absolute; inset: 0; overflow: hidden; z-index: 2; pointer-events: none; }
     .cg3-node {
       position: absolute;
       transform: translate(-50%, -50%);
@@ -294,7 +294,17 @@ function injectStyles() {
       will-change: transform, opacity;
     }
     @media (max-width: 480px) {
-      .cg3-q { font-size: 0.64rem; }
+      .cg3-node {
+        max-width: clamp(110px, 42vw, 180px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .cg3-q {
+        font-size: 0.64rem;
+        max-width: clamp(120px, 45vw, 220px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   `;
   document.head.appendChild(style);
@@ -358,12 +368,15 @@ export function ConceptGraph({ lang = "pt" }: { lang?: Lang }) {
 
     const W = Math.max(container.clientWidth, 1);
     const H = Math.max(container.clientHeight, 1);
+    const aspect = W / H;
 
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(46, W / H, 0.1, 100);
-    camera.position.set(0, 0, 10.5);
+    const camera = new THREE.PerspectiveCamera(46, aspect, 0.1, 100);
+    // Push camera back on narrow viewports so the 3D graph always fits horizontally.
+    const fitZ = aspect < 1 ? (10.5 * 1.05) / aspect : 10.5;
+    camera.position.set(0, 0, fitZ);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
@@ -625,8 +638,11 @@ export function ConceptGraph({ lang = "pt" }: { lang?: Lang }) {
     const container = containerRef.current;
     if (!renderer || !camera || !container) return;
     if (size.width === 0 || size.height === 0) return;
+    const aspect = size.width / Math.max(size.height, 1);
     renderer.setSize(size.width, size.height, false);
-    camera.aspect = size.width / Math.max(size.height, 1);
+    camera.aspect = aspect;
+    // Keep graph fitting horizontally on narrow viewports.
+    camera.position.z = aspect < 1 ? (10.5 * 1.05) / aspect : 10.5;
     camera.updateProjectionMatrix();
     if (reducedRef.current) renderOnce();
   }, [size]);

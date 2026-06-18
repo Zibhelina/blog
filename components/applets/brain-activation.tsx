@@ -457,13 +457,16 @@ export function BrainActivation({ lang = "pt" }: { lang?: Lang }) {
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
+    const aspect = size.width / Math.max(size.height, 1);
     const camera = new THREE.PerspectiveCamera(
       38,
-      size.width / size.height,
+      aspect,
       0.1,
       20,
     );
-    camera.position.set(0, 0.25, 5.4);
+    // Push camera back on narrow viewports so the brain always fits horizontally.
+    const fitZ = aspect < 1 ? (5.4 * 1.05) / aspect : 5.4;
+    camera.position.set(0, 0.25, fitZ);
     camera.lookAt(0, -0.05, 0);
     cameraRef.current = camera;
 
@@ -907,7 +910,10 @@ export function BrainActivation({ lang = "pt" }: { lang?: Lang }) {
     const camera = cameraRef.current;
     const renderer = rendererRef.current;
     if (!camera || !renderer || size.width === 0) return;
-    camera.aspect = size.width / size.height;
+    const aspect = size.width / Math.max(size.height, 1);
+    camera.aspect = aspect;
+    // Keep brain fitting horizontally on narrow viewports.
+    camera.position.z = aspect < 1 ? (5.4 * 1.05) / aspect : 5.4;
     camera.updateProjectionMatrix();
     renderer.setSize(size.width, size.height, false);
     const pointMat = pointsRef.current?.material as THREE.ShaderMaterial | undefined;
@@ -1100,6 +1106,9 @@ export function BrainActivation({ lang = "pt" }: { lang?: Lang }) {
               ? "0 0 8px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.5)"
               : "0 0 6px rgba(255,255,255,0.8), 0 1px 2px rgba(0,0,0,0.15)",
             whiteSpace: "nowrap",
+            maxWidth: "clamp(100px, 70vw, 240px)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
             zIndex: 5,
           }}
         >
