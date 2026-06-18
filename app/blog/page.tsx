@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { formatDate, getAllPosts, toIsoDate } from "@/lib/content";
+import { formatDate, getListedPosts, toIsoDate } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogIndexPage() {
-  const posts = await getAllPosts();
+  const posts = await getListedPosts();
 
   return (
     <>

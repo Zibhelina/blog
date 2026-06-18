@@ -5,6 +5,8 @@ A minimal, text-first personal website built with Next.js, TypeScript, and MDX. 
 ## Features
 
 - Blog posts written in MDX
+- Translated post variants linked with `translationOf`
+- Rendered study-log blocks with Markdown and KaTeX math support
 - Project entries written in MDX
 - Draft support for unpublished posts
 - Static-friendly Next.js architecture
@@ -16,6 +18,7 @@ A minimal, text-first personal website built with Next.js, TypeScript, and MDX. 
 - React
 - TypeScript
 - MDX
+- KaTeX
 
 ## Local Development
 
@@ -31,6 +34,14 @@ Then open:
 ```txt
 http://localhost:3000
 ```
+
+The local dev script currently runs Next with webpack instead of Turbopack:
+
+```bash
+npm run dev
+```
+
+This avoids a local Turbopack reload loop seen while rendering MDX posts.
 
 To check the production build:
 
@@ -70,6 +81,33 @@ Write the post here.
 ```
 
 Dates use the `DD-MM-YYYY` format. Set `draft: true` to keep a post out of public routes and lists.
+
+Translated versions are sibling MDX files with `translationOf` pointing to the source slug:
+
+```mdx
+---
+title: "Translated post title"
+date: "06-05-2026"
+draft: false
+translationOf: "source-post-slug"
+---
+```
+
+Translations are built as direct routes and linked from the post language switcher, but hidden from the main blog index.
+
+For rendered study-log excerpts, wrap normal Markdown in the `StudyLog` MDX component. Markdown headings, fenced code blocks, lists, and display math render inside the styled block:
+
+```mdx
+<StudyLog>
+
+## Metrics
+
+$$
+\frac{2 × \mathrm{precision} × \mathrm{recall}}{\mathrm{precision} + \mathrm{recall}}
+$$
+
+</StudyLog>
+```
 
 ## Deployment
 

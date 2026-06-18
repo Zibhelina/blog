@@ -15,6 +15,7 @@ export type BlogPost = {
   description?: string;
   draft: boolean;
   tags: string[];
+  translationOf?: string;
   body: string;
 };
 
@@ -144,6 +145,7 @@ export const getAllPosts = cache(async (includeDrafts = false) => {
         description: optionalString(data, "description"),
         draft: optionalBoolean(data, "draft"),
         tags: optionalStringArray(data, "tags"),
+        translationOf: optionalString(data, "translationOf"),
         body
       };
     })
@@ -159,8 +161,13 @@ export const getPostBySlug = cache(async (slug: string) => {
   return posts.find((post) => post.slug === slug);
 });
 
-export const getLatestPosts = cache(async (limit = 3) => {
+export const getListedPosts = cache(async () => {
   const posts = await getAllPosts();
+  return posts.filter((post) => !post.translationOf);
+});
+
+export const getLatestPosts = cache(async (limit = 3) => {
+  const posts = await getListedPosts();
   return posts.slice(0, limit);
 });
 

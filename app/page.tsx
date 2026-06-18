@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import catProfile from "../cat-profile.png";
+import profileSketch from "../profile-sketch.png";
 import { formatDate, getAllProjects, getLatestPosts, toIsoDate } from "@/lib/content";
 
 export default async function HomePage() {
@@ -12,7 +12,7 @@ export default async function HomePage() {
         <div className="profile-avatar" aria-hidden="true">
           <Image
             className="profile-image"
-            src={catProfile}
+            src={profileSketch}
             alt=""
             priority
             sizes="(max-width: 600px) 112px, 168px"
@@ -22,7 +22,7 @@ export default async function HomePage() {
           <dl className="profile-details" aria-label="Profile details">
             <div>
               <dt>name:</dt>
-              <dd className="profile-name" id="profile-name">Joao Henrique</dd>
+              <dd className="profile-name" id="profile-name">João</dd>
             </div>
             <div>
               <dt>about me:</dt>
