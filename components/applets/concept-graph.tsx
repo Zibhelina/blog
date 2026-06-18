@@ -261,10 +261,11 @@ function injectStyles() {
       background: transparent;
       touch-action: pan-y;
       cursor: grab;
+      overflow: hidden;
     }
     .cg3-wrapper.cg3-dragging { cursor: grabbing; }
     .cg3-canvas-host { position: absolute; inset: 0; }
-    .cg3-canvas-host canvas { display: block; }
+    .cg3-canvas-host canvas { display: block; width: 100% !important; height: 100% !important; }
     .cg3-labels { position: absolute; inset: 0; overflow: hidden; z-index: 2; pointer-events: none; }
     .cg3-node {
       position: absolute;
@@ -374,8 +375,11 @@ export function ConceptGraph({ lang = "pt" }: { lang?: Lang }) {
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(46, aspect, 0.1, 100);
-    // Push camera back on narrow viewports so the 3D graph always fits horizontally.
-    const fitZ = aspect < 1 ? (10.5 * 1.05) / aspect : 10.5;
+    // Desktop (aspect >= 1) keeps the original framing (z = 10.5). On narrow
+    // viewports push the camera back by 1/aspect to counter the horizontal-FOV
+    // shrink, PLUS a small extra margin so the overlay labels (which extend past
+    // the node positions) don't touch the edges.
+    const fitZ = aspect < 1 ? (10.5 * 1.18) / aspect : 10.5;
     camera.position.set(0, 0, fitZ);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
@@ -641,8 +645,8 @@ export function ConceptGraph({ lang = "pt" }: { lang?: Lang }) {
     const aspect = size.width / Math.max(size.height, 1);
     renderer.setSize(size.width, size.height, false);
     camera.aspect = aspect;
-    // Keep graph fitting horizontally on narrow viewports.
-    camera.position.z = aspect < 1 ? (10.5 * 1.05) / aspect : 10.5;
+    // Keep graph fitting horizontally on narrow viewports (match setup formula).
+    camera.position.z = aspect < 1 ? (10.5 * 1.18) / aspect : 10.5;
     camera.updateProjectionMatrix();
     if (reducedRef.current) renderOnce();
   }, [size]);

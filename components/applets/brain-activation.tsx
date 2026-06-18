@@ -451,6 +451,12 @@ export function BrainActivation({ lang = "pt" }: { lang?: Lang }) {
     renderer.setSize(size.width, size.height, false);
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // setSize(...false) does NOT set canvas CSS, so the canvas would display at
+    // its drawing-buffer pixel size and overflow the container on mobile. Force
+    // it to fill the mount box.
+    renderer.domElement.style.display = "block";
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
     mount.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
@@ -464,8 +470,9 @@ export function BrainActivation({ lang = "pt" }: { lang?: Lang }) {
       0.1,
       20,
     );
-    // Push camera back on narrow viewports so the brain always fits horizontally.
-    const fitZ = aspect < 1 ? (5.4 * 1.05) / aspect : 5.4;
+    // Push camera back on narrow viewports so the brain + its region labels
+    // always fit horizontally (small extra margin for the labels).
+    const fitZ = aspect < 1 ? (5.4 * 1.12) / aspect : 5.4;
     camera.position.set(0, 0.25, fitZ);
     camera.lookAt(0, -0.05, 0);
     cameraRef.current = camera;
@@ -912,8 +919,8 @@ export function BrainActivation({ lang = "pt" }: { lang?: Lang }) {
     if (!camera || !renderer || size.width === 0) return;
     const aspect = size.width / Math.max(size.height, 1);
     camera.aspect = aspect;
-    // Keep brain fitting horizontally on narrow viewports.
-    camera.position.z = aspect < 1 ? (5.4 * 1.05) / aspect : 5.4;
+    // Keep brain fitting horizontally on narrow viewports (match setup formula).
+    camera.position.z = aspect < 1 ? (5.4 * 1.12) / aspect : 5.4;
     camera.updateProjectionMatrix();
     renderer.setSize(size.width, size.height, false);
     const pointMat = pointsRef.current?.material as THREE.ShaderMaterial | undefined;
