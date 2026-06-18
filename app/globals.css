@@ -822,3 +822,8 @@ button:focus-visible {
   color: var(--foreground);
 }
 
+.support-callout .support-icon.kofi-icon {
+  width: 26px;
+  height: 26px;
+}
+
