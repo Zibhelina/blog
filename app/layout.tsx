@@ -25,10 +25,10 @@ export default function RootLayout({
             __html: `(() => {
   try {
     const theme = window.localStorage.getItem("mqx-theme");
-    if (theme === "light" || theme === "dark") {
-      document.documentElement.dataset.theme = theme;
-    }
-  } catch (_) {}
+    document.documentElement.dataset.theme = theme === "light" || theme === "dark" ? theme : "dark";
+  } catch (_) {
+    document.documentElement.dataset.theme = "dark";
+  }
 })();`
           }}
         />
@@ -36,19 +36,16 @@ export default function RootLayout({
       <body>
         <header className="site-header">
           <nav className="site-nav" aria-label="Main navigation">
-            <Link className="site-title" href="/">
-              Home
-            </Link>
-            <div className="site-actions">
-              <div className="site-links">
-                <Link href="/blog">Blog</Link>
-                <Link href="/projects">Projects</Link>
-              </div>
-              <ThemeToggle />
+            <div className="site-links">
+              <Link href="/">Home</Link>
+              <Link href="/blog">Blog</Link>
+              <Link href="/projects">Projects</Link>
             </div>
+            <ThemeToggle />
           </nav>
         </header>
         <main className="site-main">{children}</main>
+        <footer className="site-footer">© 2026 João • Built with Next.js &amp; MDX</footer>
       </body>
     </html>
   );
