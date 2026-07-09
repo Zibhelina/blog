@@ -788,7 +788,11 @@ score: 20 → 24        (reward = +4)`,
         <h2 id="s1">1 · Where we are</h2>
         <p>Short version: <strong>Milestone 1 is functionally done, and we are ahead of where the plan says we should be.</strong>${" "}
           The game engine is complete, the expectimax agent is implemented and merged into <code>main</code>, a random
-          baseline agent exists, and the full loop runs end to end. What remains for M2 is the learning half.</p>
+          baseline agent exists, and the full loop runs end to end. What remains for Milestone 2 (M2) is the learning half.</p>
+        <p class="muted" style=${{fontSize:'.92rem'}}>Heads-up on vocabulary: this status section name-drops a few terms
+          (<em>expectimax</em>, <em>MDP</em>, <em>max/chance node</em>, <em>afterstate</em>) before they are explained.
+          Don't worry about them here — §2 defines the core vocabulary and §3–§6 build each technique from scratch. This
+          section is just the map of what already exists.</p>
 
         <h3>The modules on main</h3>
         <div style=${{overflowX:'auto'}}><table>
@@ -801,7 +805,7 @@ score: 20 → 24        (reward = +4)`,
             <tr><td><code>game/game.py</code></td><td>Ryan</td><td>ties it together: <code>move()</code>, <code>is_game_over()</code>, scoring, spawning</td><td><span class="statuschip chip-done">done</span></td></tr>
             <tr><td><code>agents/agent.py</code></td><td>Praneet</td><td>base interface: <code>choose_action(state)</code></td><td><span class="statuschip chip-done">done</span></td></tr>
             <tr><td><code>agents/random_agent.py</code></td><td>Jayden</td><td>uniform random move — our evaluation baseline</td><td><span class="statuschip chip-done">done</span></td></tr>
-            <tr><td><code>agents/expectimax_agent.py</code></td><td>João + Ryan + Praneet</td><td>max node, chance node (10-cell sampling), heuristic <code>evaluate()</code></td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>agents/expectimax_agent.py</code></td><td>João + Ryan + Praneet</td><td>max node, chance node (10-cell sampling), heuristic <code>evaluate()</code> (a hand-written scoring rule)</td><td><span class="statuschip chip-done">done</span></td></tr>
             <tr><td><code>ui/</code> (renderer, menu)</td><td>Ryan</td><td>pygame board renderer, header, menu, game loop</td><td><span class="statuschip chip-done">done</span></td></tr>
             <tr><td>n-tuple network</td><td>—</td><td>learned value function (this document, §5)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
             <tr><td>TD training loop</td><td>—</td><td>self-play training (this document, §6)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
@@ -866,7 +870,7 @@ score: 20 → 24        (reward = +4)`,
             <tr><td><strong>action</strong></td><td>one of the four moves: left, right, up, down.</td></tr>
             <tr><td><strong>reward</strong> <${TeX} tex="r"/></td><td>the points a move scores — the sum of the tiles that merged on that move. This is the number the agent is ultimately trying to pile up.</td></tr>
             <tr><td><strong>value function</strong> <${TeX} tex="V"/></td><td>a function that takes a board and returns a single number estimating how good it is — roughly, "how many points do I expect to earn from here to the end of the game." <${TeX} tex="V(s)"/> is high for promising boards, low for near-dead ones. <strong>The entire M2 is about learning a good <${TeX} tex="V"/>.</strong> Today <code>evaluate()</code> is a crude hand-written <${TeX} tex="V"/>; the n-tuple network will be a learned one.</td></tr>
-            <tr><td><strong>MDP</strong></td><td>Markov Decision Process — the formal name for "a game defined by states, actions, rewards, and how the world responds." It is just the rulebook of 2048 stated in RL's vocabulary; <code>main.py</code>'s loop (observe → choose → apply → repeat) is one walk through it.</td></tr>
+            <tr><td><strong>MDP</strong></td><td>Markov Decision Process — the formal name for "a game defined by states, actions, rewards, and how the world responds." It is just the rulebook of 2048 stated in the vocabulary of <strong>RL (Reinforcement Learning</strong> — the field of learning good behavior from trial-and-error experience rather than from labeled examples); <code>main.py</code>'s loop (observe → choose → apply → repeat) is one walk through it.</td></tr>
           </tbody>
         </table></div>
         <p>The one to hold onto is <${TeX} tex="V"/>. Every technique below is either <em>using</em> <${TeX} tex="V"/>
@@ -882,7 +886,7 @@ score: 20 → 24        (reward = +4)`,
             <tr><td><strong>Expectimax</strong></td><td>search (not RL)</td><td>picks the move by looking ahead in a max/chance tree</td><td><span class="statuschip chip-done">built</span></td></tr>
             <tr><td><strong>RL</strong></td><td>the paradigm</td><td>"learn the value of things from experience, no teacher"</td><td><span class="statuschip chip-todo">M2 umbrella</span></td></tr>
             <tr><td><strong>N-tuple network</strong></td><td>representation</td><td><em>where</em> the learned value lives (lookup tables)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
-            <tr><td><strong>TD learning</strong></td><td>training algorithm</td><td><em>how</em> the value gets corrected, move by move</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+            <tr><td><strong>TD learning</strong></td><td>training algorithm</td><td><em>how</em> the value gets corrected, move by move (TD = Temporal Difference; §6)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
           </tbody>
         </table></div>
         <p>The anchor that keeps n-tuple and TD from blurring together: <strong>the n-tuple network is the student,
@@ -914,7 +918,9 @@ score: 20 → 24        (reward = +4)`,
           lands on a uniformly random empty cell. The honest summary of a dice roll is the${" "}
           <em>probability-weighted average</em> of its outcomes — the expected value. Hence the name:${" "}
           <strong>Expecti</strong>(mated chance) + <strong>max</strong>(imizing agent).</p>
-        <p>Why not a MIN node, like chess minimax? Because min models an <em>adversary</em> — something that sees your
+        <p>Why not a MIN node, like chess minimax? (Minimax is the classic two-player search where you alternate
+          MAX levels for yourself and MIN levels for an opponent.) Because min models an <em>adversary</em> — something
+          that sees your
           position and picks the worst case for you on purpose. 2048's tile spawner does not look at anything; it rolls
           dice. Model dice as malice and you get a paranoid agent that refuses good risky lines. See it happen with real
           numbers:</p>
@@ -1025,8 +1031,8 @@ score: 20 → 24        (reward = +4)`,
         <h3>Step 5 · a board's value is the sum of its tuples' scores</h3>
         <p>One tuple sees only its own cells — it is a specialist with tunnel vision. To judge the whole board we use${" "}
           <em>many</em> tuples (the demo below uses the 8 rows and columns; the full design adds nine 2×2 squares for
-          17). Each specialist looks up its score in its own table, and the board's value is simply the${" "}
-          <em>sum</em> of what they report:</p>
+          17). Each specialist looks up its score in its own table, and the board's value is simply the
+          <em>sum</em> of what they report (below, <${TeX} tex="\\text{LUT}_i"/> means "the lookup table of tuple <${TeX} tex="i"/>"):</p>
         <${TeX} block tex="V(\\text{board}) \\;=\\; \\sum_i \\text{LUT}_i\\big[\\,\\text{idx}_i(\\text{board})\\,\\big]" />
         <${NTupleDemo} />
         <h3>What it is in code</h3>
@@ -1092,8 +1098,10 @@ while the game is not over:
 
     3 · temporal-difference error, then the nudge
         delta ← (r_next + V(s_after_next)) − V(s_after)
-        update the network at s_after by  α · delta</div>
-        <p>Feel what the learning rate does. This demo trains a single value estimate toward a noisy target
+        update the network at s_after by  α · delta   (α = the learning rate, below)</div>
+        <p>That <${TeX} tex="\\alpha"/> (alpha) is the <strong>learning rate</strong>: a small number that controls how
+          hard each correction pushes the value — big <${TeX} tex="\\alpha"/> means bold jumps, small <${TeX} tex="\\alpha"/>
+          means cautious nudges. Feel what it does. This demo trains a single value estimate toward a noisy target
           (the noise stands in for "every game plays out differently"):</p>
         <${TDDemo} />
         <p>Practical numbers for our implementation: start <${TeX} tex="\\alpha"/> around 0.0025–0.01 (divided across
@@ -1141,9 +1149,10 @@ after M2:
           plus a recap, challenges (~½ page), and changes-from-proposal (~½ page). So the split below is designed
           around a rule: <strong>every piece must produce evidence for the report, not just code.</strong></p>
         <p>One structural note first, honestly: an earlier draft split for M2 had roles like hidden-layer design,
-          neuron counts, ReLU vs LeakyReLU, batch sizes. Those are deep-NN roles, and none of those concepts exist in
+          neuron counts, ReLU vs LeakyReLU, batch sizes. Those are deep neural network (deep-NN) roles, and none of those
+          concepts exist in
           the n-tuple architecture we agreed on (§5 — no layers, no activations, no batches). The pieces below are the
-          real ones. The NN itself survives as the stretch <em>ablation</em> in piece 2/4 (an ablation = a controlled
+          real ones. The NN (neural network) itself survives as the stretch <em>ablation</em> in piece 2/4 (an ablation = a controlled
           "what if we swap this part out" experiment): a small net trained on the same data,
           reported honestly ("it scored below the n-tuple, as the literature predicted") — which is a legitimate,
           citable result, not a failure.</p>
