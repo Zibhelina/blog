@@ -786,7 +786,7 @@ score: 20 → 24        (reward = +4)`,
         <hr/>
 
         <h2 id="s1">1 · Where we are</h2>
-        <p>Short version: <strong>Milestone 1 is functionally done, and we are ahead of where the plan says we should be.</strong>
+        <p>Short version: <strong>Milestone 1 is functionally done, and we are ahead of where the plan says we should be.</strong>${" "}
           The game engine is complete, the expectimax agent is implemented and merged into <code>main</code>, a random
           baseline agent exists, and the full loop runs end to end. What remains for M2 is the learning half.</p>
 
@@ -811,10 +811,10 @@ score: 20 → 24        (reward = +4)`,
 
         <div class="callout good">
           <p class="ct">The interface contract (agreed after a real bug — keep it)</p>
-          <p style=${{margin:0}}><strong>Agents take the raw 4×4 numpy grid, never the <code>Board</code> object.</strong>
+          <p style=${{margin:0}}><strong>Agents take the raw 4×4 numpy grid, never the <code>Board</code> object.</strong>${" "}
             Everything inside the agent (<code>movement.py</code>, <code>max_node</code>, <code>evaluate</code>) operates
-            on the grid; callers pass <code>game.board.grid.copy()</code>. We learned this the concrete way:
-            <code>main.py</code> originally passed the <code>Board</code> object and crashed with
+            on the grid; callers pass <code>game.board.grid.copy()</code>. We learned this the concrete way:${" "}
+            <code>main.py</code> originally passed the <code>Board</code> object and crashed with${" "}
             <code>AttributeError: 'Board' object has no attribute 'shape'</code> — fixed Jul 9. If a merge ever
             reintroduces the mismatch, that error message is the signature. With the contract respected the loop runs
             clean: depth-2 expectimax played 200 moves in ~4 s and reached tile 256 in testing (heads-up for the demo:
@@ -827,7 +827,7 @@ score: 20 → 24        (reward = +4)`,
         <${Stepper} title="One turn of the real game loop" steps=${moveFlowSteps} />
 
         <h3>Feel it</h3>
-        <p>This board runs the same slide/merge semantics as our engine (one merge per tile per move,
+        <p>This board runs the same slide/merge semantics as our engine (one merge per tile per move,${" "}
           <code>changed</code> flag on illegal moves, 90/10 spawn). Play a few moves.</p>
         <${Game2048} pauseSpawn=${false} caption="Our game, playable — same rules as game/movement.py" />
 
@@ -837,7 +837,7 @@ score: 20 → 24        (reward = +4)`,
             pygame script that opens a menu loop at import time — discover imports it and hangs forever. Run test files
             individually (e.g. <code>python3 tests/test_renderer.py</code>).</p>
           <p><strong>2. Branch convention.</strong> Each person codes on their own branch
-            (e.g. <code>max-node</code>, <code>praneet</code>, <code>Chance-node---Ryan</code>) and merges to
+            (e.g. <code>max-node</code>, <code>praneet</code>, <code>Chance-node---Ryan</code>) and merges to${" "}
             <code>main</code>. Re-read files after any pull — the working tree changes under you in a shared repo.</p>
         </details>
 
@@ -850,12 +850,31 @@ score: 20 → 24        (reward = +4)`,
           value function the program learns by playing itself.</strong> The engine and the expectimax search stay exactly
           as they are.</p>
         </div>
-        <p>Right now, when the search reaches a leaf, it scores the board with
+        <p>Right now, when the search reaches a leaf, it scores the board with${" "}
           <code>100 × empty_cells + max_tile</code> — a hand-written guess that "space is good, big tiles are good."
           It works up to a point (tile 256–512), but it is blind to structure: it cannot know that big tiles belong in a
           corner, that monotone rows are safer, that some open boards are traps. Milestone 2 replaces the guess with a
           function that discovered those patterns itself, over millions of self-played games.</p>
-        <p>Four words get thrown around in this project. Here is the exact role of each — this table is worth
+
+        <h3>First, the vocabulary</h3>
+        <p>A handful of words and one symbol show up on every page below. Pin them down once here and the rest reads
+          easily:</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>term</th><th>what it means, concretely in 2048</th></tr></thead>
+          <tbody>
+            <tr><td><strong>state</strong> <${TeX} tex="s"/></td><td>a board position — the 4×4 grid of tiles the agent is looking at right now.</td></tr>
+            <tr><td><strong>action</strong></td><td>one of the four moves: left, right, up, down.</td></tr>
+            <tr><td><strong>reward</strong> <${TeX} tex="r"/></td><td>the points a move scores — the sum of the tiles that merged on that move. This is the number the agent is ultimately trying to pile up.</td></tr>
+            <tr><td><strong>value function</strong> <${TeX} tex="V"/></td><td>a function that takes a board and returns a single number estimating how good it is — roughly, "how many points do I expect to earn from here to the end of the game." <${TeX} tex="V(s)"/> is high for promising boards, low for near-dead ones. <strong>The entire M2 is about learning a good <${TeX} tex="V"/>.</strong> Today <code>evaluate()</code> is a crude hand-written <${TeX} tex="V"/>; the n-tuple network will be a learned one.</td></tr>
+            <tr><td><strong>MDP</strong></td><td>Markov Decision Process — the formal name for "a game defined by states, actions, rewards, and how the world responds." It is just the rulebook of 2048 stated in RL's vocabulary; <code>main.py</code>'s loop (observe → choose → apply → repeat) is one walk through it.</td></tr>
+          </tbody>
+        </table></div>
+        <p>The one to hold onto is <${TeX} tex="V"/>. Every technique below is either <em>using</em> <${TeX} tex="V"/>
+          to pick a move (expectimax), deciding <em>where</em> <${TeX} tex="V"/> lives (n-tuple network), or
+          <em>improving</em> <${TeX} tex="V"/> from experience (TD learning).</p>
+
+        <h3>The four techniques</h3>
+        <p>With <${TeX} tex="V"/> in hand, here are the four words that get thrown around — this table is worth
           memorizing before the meeting:</p>
         <div style=${{overflowX:'auto'}}><table>
           <thead><tr><th>piece</th><th>what it is</th><th>its job</th><th>status</th></tr></thead>
@@ -892,8 +911,8 @@ score: 20 → 24        (reward = +4)`,
           of levels:</p>
         <p><strong>MAX nodes</strong> are the agent's turns. It controls the choice, so it takes the <em>best</em> child —
           the maximum. <strong>CHANCE nodes</strong> are the environment's turns. Nobody chooses: a 2 (90%) or a 4 (10%)
-          lands on a uniformly random empty cell. The honest summary of a dice roll is the
-          <em>probability-weighted average</em> of its outcomes — the expected value. Hence the name:
+          lands on a uniformly random empty cell. The honest summary of a dice roll is the${" "}
+          <em>probability-weighted average</em> of its outcomes — the expected value. Hence the name:${" "}
           <strong>Expecti</strong>(mated chance) + <strong>max</strong>(imizing agent).</p>
         <p>Why not a MIN node, like chess minimax? Because min models an <em>adversary</em> — something that sees your
           position and picks the worst case for you on purpose. 2048's tile spawner does not look at anything; it rolls
@@ -903,6 +922,7 @@ score: 20 → 24        (reward = +4)`,
         <p>Implementation notes on what is in <code>main</code> right now, because the report will need them:</p>
         <p><strong>Depth counts max levels.</strong> <code>max_node</code> decrements depth on the max→chance step;
           <code>chance_node</code> passes it through. Depth 2 means "my move, spawn, my move, spawn, evaluate."
+          (One such level is called a <em>ply</em> — so "3-ply" below just means looking three moves deep.)
           <strong>Sampling:</strong> a full chance node has (empty cells × 2 values) children — up to 28 branches, which
           explodes with depth. Ours samples at most 10 empty cells and reweights, trading a little accuracy in the
           expectation for a lot of speed. <strong>Illegal moves</strong> are skipped via the <code>changed</code> flag,
@@ -923,19 +943,21 @@ score: 20 → 24        (reward = +4)`,
             <tr><td>3 · next state <${TeX} tex="s''"/></td><td>after the random tile lands</td><td>the dice</td></tr>
           </tbody>
         </table></div>
-        <p>Verified fact about our repo: <code>movement.py</code> returns stage 2. The spawn happens separately, inside
+        <p>Verified fact about our repo: <code>movement.py</code> returns stage 2. The spawn happens separately, inside${" "}
           <code>Game.move</code>. So the grid that <code>max_node</code> hands to <code>chance_node</code> <em>is</em> the
           afterstate. Watch the boundary between determinism and chance — play a move, and the game freezes at the
           afterstate until you release the dice:</p>
         <${Game2048} pauseSpawn=${true} caption="Afterstate mode: every move pauses at stage 2, before randomness" />
         <p>Why learn <${TeX} tex="V(\\text{afterstate})"/> instead of <${TeX} tex="V(\\text{state})"/>? Because deciding
-          becomes trivial and cheap. To pick a move you compute, for each legal action:</p>
+          becomes trivial and cheap. To pick a move you compute, for each legal action, the reward it scores plus the
+          value of the afterstate it produces, and keep the action with the biggest total (that "keep the arg that
+          maximizes" operation is written <${TeX} tex="\\arg\\max"/>):</p>
         <${TeX} block tex="\\text{choose } \\arg\\max_{a\\,\\text{legal}} \\;\\big[\\, r(s,a) + V(\\text{afterstate}(s,a)) \\,\\big]" />
         <p>Both terms are deterministic — no enumerating possible spawns at decision time, no transition probabilities
           needed. Four afterstates, four lookups, done.</p>
         <div class="callout warn">
           <p class="ct">Common objection: "but then the agent ignores the randomness!"</p>
-          <p style=${{margin:0}}>It does not. It declines to predict the <em>specific</em> tile — but the <em>average effect</em>
+          <p style=${{margin:0}}>It does not. It declines to predict the <em>specific</em> tile — but the <em>average effect</em>${" "}
             of the randomness is baked into <${TeX} tex="V"/> automatically, because TD training watches millions of real
             spawns and their consequences flow back into the value of the afterstates that preceded them. An afterstate
             that tends to get wrecked by unlucky spawns simply ends up with a low learned value.
@@ -952,14 +974,14 @@ score: 20 → 24        (reward = +4)`,
         <h3>The problem this data structure solves</h3>
         <p>We need a function that takes a board and returns a learned score — and it has to be absurdly fast, because
           training will call it millions of times. The fastest lookup a computer can do is reading one slot of a plain
-          array: <code>table[i]</code>. But an array is indexed by a <em>number</em>, and what we have is a
-          <em>pattern of tiles</em>. So the entire design reduces to one question:
+          array: <code>table[i]</code>. But an array is indexed by a <em>number</em>, and what we have is a${" "}
+          <em>pattern of tiles</em>. So the entire design reduces to one question:${" "}
           <strong>how do we turn a pattern of cells into a single number, so that every possible pattern gets its own
           private slot in an array?</strong> Everything below is the answer, one step at a time.</p>
 
         <h3>Step 1 · watch a few cells, not the whole board</h3>
         <p>Scoring whole boards directly is hopeless — there are around 10¹⁶ distinct 2048 boards, more than we could
-          ever visit, let alone store a score for each. So we score <em>pieces</em> of the board instead. A
+          ever visit, let alone store a score for each. So we score <em>pieces</em> of the board instead. A${" "}
           <strong>tuple</strong> is nothing more than a fixed set of positions we agree to watch together. For example,
           "row 0" is the tuple made of the four cells (0,0), (0,1), (0,2), (0,3) — the top row. Four cells have few
           enough possible contents to store them all, yet still capture real local structure: a monotone row, a big
@@ -967,7 +989,7 @@ score: 20 → 24        (reward = +4)`,
 
         <h3>Step 2 · turn each cell into a small number</h3>
         <p>Now look at what can be <em>inside</em> one cell. In 2048 every tile is a power of two:
-          2 = 2¹, 4 = 2², 8 = 2³, … up to 32768 = 2¹⁵. So instead of recording a tile's face value, we record
+          2 = 2¹, 4 = 2², 8 = 2³, … up to 32768 = 2¹⁵. So instead of recording a tile's face value, we record${" "}
           <strong>which power of two it is</strong> — its exponent — and use 0 for an empty cell:</p>
         <p style=${{textAlign:'center'}}><code>empty → 0 · 2 → 1 · 4 → 2 · 8 → 3 · 16 → 4 · … · 32768 → 15</code></p>
         <p>Nothing deep happened here — we just relabeled the tiles by their rank. What we gained is that every cell
@@ -1001,9 +1023,9 @@ score: 20 → 24        (reward = +4)`,
         <${IndexAnatomy} />
 
         <h3>Step 5 · a board's value is the sum of its tuples' scores</h3>
-        <p>One tuple sees only its own cells — it is a specialist with tunnel vision. To judge the whole board we use
+        <p>One tuple sees only its own cells — it is a specialist with tunnel vision. To judge the whole board we use${" "}
           <em>many</em> tuples (the demo below uses the 8 rows and columns; the full design adds nine 2×2 squares for
-          17). Each specialist looks up its score in its own table, and the board's value is simply the
+          17). Each specialist looks up its score in its own table, and the board's value is simply the${" "}
           <em>sum</em> of what they report:</p>
         <${TeX} block tex="V(\\text{board}) \\;=\\; \\sum_i \\text{LUT}_i\\big[\\,\\text{idx}_i(\\text{board})\\,\\big]" />
         <${NTupleDemo} />
@@ -1109,7 +1131,7 @@ after M2:
           </tbody>
         </table></div>
         <p>Read the last two rows carefully: the learned value function does the heavy lifting, and the search
-          multiplies it (+80% score for depth 3 over depth 1). Comparing depths 1/2/3 with the same trained network is
+          multiplies it (+80% score for depth 3 over depth 1). Comparing depths 1/2/3 with the same trained network is${" "}
           <strong>accomplishment #2 of the report</strong> — one table, strong evidence, nearly free once the pieces exist.</p>
 
         <hr/>
@@ -1121,7 +1143,8 @@ after M2:
         <p>One structural note first, honestly: an earlier draft split for M2 had roles like hidden-layer design,
           neuron counts, ReLU vs LeakyReLU, batch sizes. Those are deep-NN roles, and none of those concepts exist in
           the n-tuple architecture we agreed on (§5 — no layers, no activations, no batches). The pieces below are the
-          real ones. The NN itself survives as the stretch ablation in piece 2/4: a small net trained on the same data,
+          real ones. The NN itself survives as the stretch <em>ablation</em> in piece 2/4 (an ablation = a controlled
+          "what if we swap this part out" experiment): a small net trained on the same data,
           reported honestly ("it scored below the n-tuple, as the literature predicted") — which is a legitimate,
           citable result, not a failure.</p>
         <div style=${{overflowX:'auto'}}><table>
@@ -1142,15 +1165,16 @@ after M2:
           </tbody>
         </table></div>
         <p><strong>Dependencies and calendar</strong> (M2 due Jul 29 — about 2.5 weeks):</p>
-        <p><strong>Week 1 (Jul 13–19):</strong> pieces 1 and 2 move together — TD cannot run without the network,
+        <p><strong>Week 1 (Jul 13–19).</strong>${" "}Pieces 1 and 2 move together — TD cannot run without the network,
           so those two owners talk daily; it is the heaviest pair. Piece 4 can build the whole eval harness now, using
-          today's heuristic <code>evaluate()</code> as a stand-in. Piece 3 prepares the swap and the depth harness.
-          <strong>Week 2 (Jul 20–26):</strong> real training runs, integration switched on, depth table measured, plots made.
-          <strong>Final stretch (Jul 27–29):</strong> the report — three accomplishments with their evidence, challenges,
-          and the documented NN → n-tuple change citing the TA feedback and the literature.</p>
+          today's heuristic <code>evaluate()</code> as a stand-in. Piece 3 prepares the swap and the depth harness.</p>
+        <p><strong>Week 2 (Jul 20–26).</strong>${" "}Real training runs, integration switched on, depth table measured,
+          plots made.</p>
+        <p><strong>Final stretch (Jul 27–29).</strong>${" "}The report — three accomplishments with their evidence,
+          challenges, and the documented NN → n-tuple change citing the TA feedback and the literature.</p>
         <div class="callout good">
           <p class="ct">Decisions to close in the meeting</p>
-          <p style=${{margin:0}}>1 · Ratify the interface contract: <strong>agents take the raw numpy grid</strong>
+          <p style=${{margin:0}}>1 · Ratify the interface contract: <strong>agents take the raw numpy grid</strong>${" "}
             (already fixed in <code>main.py</code>, Jul 9 — this is about keeping it). 2 · Confirm the four pieces and put names on them.
             3 · Confirm the NN becomes a stretch ablation, and that the change gets written into the
             changes-from-proposal section. 4 · Agree on the week-1 sync cadence for the piece 1+2 pair.</p>
