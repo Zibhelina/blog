@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>2048 RL — Team Compass</title>
+<link rel="stylesheet" href="https://esm.sh/katex@0.16.11/dist/katex.min.css">
+<style>
+  :root{
+    --bg:#fffdfa; --surface:#f7f6f3; --surface-2:#efeee9; --border:#e7e5df;
+    --text:#2e2c28; --text-muted:#6b6862; --text-faint:#9a958c;
+    --accent:#2d6df6; --accent-soft:rgba(45,109,246,.12);
+    --good:#1f9d57; --good-soft:rgba(31,157,87,.12);
+    --bad:#d4453b;  --bad-soft:rgba(212,69,59,.10);
+    --warn:#b7791f; --warn-soft:rgba(183,121,31,.10);
+    --radius:10px; --maxw:720px;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    --mono:ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#1a1917; --surface:#222120; --surface-2:#2b2a27; --border:#34322e;
+      --text:#e9e6df; --text-muted:#a7a39b; --text-faint:#76726b;
+      --accent:#6ea0ff; --accent-soft:rgba(110,160,255,.16);
+      --good:#46c07e; --good-soft:rgba(70,192,126,.16);
+      --bad:#ef6a60;  --bad-soft:rgba(239,106,96,.16);
+      --warn:#d9a441; --warn-soft:rgba(217,164,65,.12);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:18px;line-height:1.7;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:80px 24px 200px}
+  h1{font-size:2.3rem;line-height:1.15;letter-spacing:-.02em;margin:0 0 .6em}
+  h2{font-size:1.5rem;line-height:1.25;letter-spacing:-.01em;margin:2.8em 0 .5em}
+  h3{font-size:1.13rem;margin:1.8em 0 .4em}
+  p{margin:0 0 1.1em}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+  .lead{font-size:1.16rem;line-height:1.6;color:var(--text);margin:0 0 1.7em}
+  .q{font-weight:500;font-size:1.04rem;line-height:1.5;margin:0 0 10px}
+  .muted{color:var(--text-muted)} .faint{color:var(--text-faint);font-size:.85rem}
+  .kicker{font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--text-faint);margin:0 0 .5em}
+  hr{border:none;border-top:1px solid var(--border);margin:3.2em 0}
+  code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:.1em .35em;border-radius:4px}
+  img{max-width:100%;border-radius:var(--radius);display:block;margin:1.4em auto}
+  figcaption{text-align:center;color:var(--text-faint);font-size:.85rem;margin-top:.4em}
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .12s ease}
+  .card,.fig{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin:1.7em 0}
+  button{font:inherit;cursor:pointer}
+  .btn{padding:7px 14px;border-radius:7px;border:none;background:var(--accent);color:#fff;
+    font-size:.92rem;font-weight:500;transition:filter .15s,transform .05s}
+  .btn:hover{filter:brightness(1.07)} .btn:active{transform:translateY(1px)}
+  .btn:disabled{background:var(--surface-2);color:var(--text-faint);cursor:not-allowed}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .opt{display:block;width:100%;text-align:left;margin:8px 0;padding:12px 14px;border-radius:8px;
+    border:1px solid var(--border);background:var(--bg);color:var(--text);transition:background .15s,border-color .15s}
+  .opt:hover:not(:disabled){border-color:var(--accent)}
+  .opt.correct{background:var(--good-soft);border-color:var(--good)}
+  .opt.wrong{background:var(--bad-soft);border-color:var(--bad)}
+  .opt:disabled{cursor:default}
+  .feedback{margin-top:12px;padding:12px 14px;border-radius:8px;background:var(--surface-2);
+    border:1px solid var(--border);font-size:.95rem;animation:fade .25s ease}
+  .feedback.good{background:var(--good-soft);border-color:transparent}
+  .feedback.bad{background:var(--bad-soft);border-color:transparent}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  input.txt{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);
+    background:var(--bg);color:var(--text);font:inherit}
+  input.txt:focus,.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  details{margin:1.3em 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:0 16px}
+  details>summary{cursor:pointer;padding:14px 0;font-weight:500;color:var(--accent);list-style:none}
+  details>summary::-webkit-details-marker{display:none}
+  details>summary::before{content:'▸ ';color:var(--text-faint)}
+  details[open]>summary::before{content:'▾ '}
+  details[open]>summary{border-bottom:1px solid var(--border);margin-bottom:12px}
+  .mono{font-family:var(--mono);font-size:.82rem;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--border);line-height:1.55}
+  table{width:100%;border-collapse:collapse;margin:1.4em 0;font-size:.93rem}
+  th{text-align:left;font-weight:600;color:var(--text-muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;
+    padding:8px 10px;border-bottom:1px solid var(--border)}
+  td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .statuschip{display:inline-block;font-size:.74rem;font-weight:600;padding:2px 9px;border-radius:999px}
+  .chip-done{background:var(--good-soft);color:var(--good)}
+  .chip-todo{background:var(--accent-soft);color:var(--accent)}
+  .chip-bug{background:var(--bad-soft);color:var(--bad)}
+  .callout{border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin:1.6em 0;font-size:.96rem}
+  .callout.warn{background:var(--warn-soft)}
+  .callout.good{background:var(--good-soft)}
+  .callout .ct{font-weight:600;margin:0 0 6px;font-size:.9rem}
+  .grid2048{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:var(--surface-2);
+    padding:8px;border-radius:10px;max-width:320px;margin:0 auto}
+  .tile{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:7px;
+    font-weight:600;font-size:1.15rem;background:var(--bg);color:var(--text);transition:background .12s}
+  .toc{list-style:none;padding:0;margin:1.2em 0}
+  .toc li{padding:7px 0;border-bottom:1px solid var(--border)}
+  .toc li:last-child{border-bottom:none}
+  .toc .n{color:var(--text-faint);font-variant-numeric:tabular-nums;margin-right:10px;font-size:.85rem}
+  .metastrip{display:flex;flex-wrap:wrap;gap:8px 20px;margin:1.4em 0 0;padding:12px 16px;border:1px solid var(--border);
+    border-radius:var(--radius);background:var(--surface);font-size:.85rem;color:var(--text-muted)}
+  /* Sidebar content navigation (Notion-style, scroll-spy) */
+  .sidenav{position:fixed;top:0;left:0;bottom:0;width:250px;padding:28px 14px 28px 20px;overflow-y:auto;
+    border-right:1px solid var(--border);background:var(--surface);z-index:40;
+    scrollbar-width:thin}
+  .sidenav .snav-title{font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--text-faint);margin:0 0 12px;padding:0 8px}
+  .sidenav a{display:flex;align-items:baseline;gap:8px;padding:6px 8px;border-radius:6px;border:none;
+    font-size:.84rem;line-height:1.35;color:var(--text-muted);text-decoration:none;transition:background .12s,color .12s}
+  .sidenav a:hover{background:var(--surface-2);color:var(--text)}
+  .sidenav a.active{background:var(--accent-soft);color:var(--accent);font-weight:500}
+  .sidenav .sn{font-size:.72rem;color:var(--text-faint);font-variant-numeric:tabular-nums;min-width:16px}
+  .sidenav a.active .sn{color:var(--accent)}
+  @media (min-width:1100px){ .wrap{margin-left:calc(250px + (100vw - 250px - var(--maxw))/2)} }
+  @media (max-width:1099px){ .sidenav{display:none} }
+</style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <div id="root"></div>
+  <script>
+    addEventListener('scroll',()=>{const h=document.documentElement;
+      const p=h.scrollTop/(h.scrollHeight-h.clientHeight||1)*100;
+      document.getElementById('progress').style.width=p+'%';});
+  </script>
+  <script type="module">
+    import React from "https://esm.sh/react@18.3.1";
+    import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
+    import htm from "https://esm.sh/htm@3.1.1";
+    import katex from "https://esm.sh/katex@0.16.11";
+    import mermaid from "https://esm.sh/mermaid@11.4.1";
+    const html = htm.bind(React.createElement);
+    const { useState, useRef, useEffect, useCallback } = React;
+
+    function TeX({ tex, block }){
+      const ref = useRef(null);
+      useEffect(()=>{ if(ref.current) katex.render(tex, ref.current,
+        { displayMode: !!block, throwOnError: false }); }, [tex, block]);
+      return html`<${block ? 'div' : 'span'} ref=${ref} />`;
+    }
+
+    function Mermaid({ chart, caption }){
+      const ref = useRef(null);
+      useEffect(()=>{
+        let alive = true;
+        const css = getComputedStyle(document.documentElement);
+        const v = n => css.getPropertyValue(n).trim();
+        mermaid.initialize({
+          startOnLoad:false, securityLevel:'loose', theme:'base', fontFamily:v('--sans'),
+          themeVariables:{
+            background:v('--bg'), primaryColor:v('--surface'), secondaryColor:v('--surface-2'),
+            tertiaryColor:v('--surface-2'), primaryBorderColor:v('--border'),
+            lineColor:v('--text-faint'), primaryTextColor:v('--text'), textColor:v('--text'), fontSize:'14px',
+          },
+        });
+        const id = 'mmd-'+Math.random().toString(36).slice(2);
+        mermaid.render(id, chart).then(({svg})=>{ if(alive&&ref.current) ref.current.innerHTML=svg; })
+          .catch(err=>{ if(alive&&ref.current) ref.current.innerHTML =
+            '<pre class="mono" style="color:var(--bad)">Mermaid error: '+err.message+'</pre>'; });
+        return ()=>{ alive=false; };
+      }, [chart]);
+      return html`<figure class="fig" style=${{textAlign:'center',overflowX:'auto',margin:'1.7em 0'}}>
+        <div ref=${ref} />
+        ${caption && html`<figcaption>${caption}</figcaption>`}
+      </figure>`;
+    }
+
+    function Quiz({ data, title }){
+      const [i,setI]=useState(0), [picked,setPicked]=useState(null);
+      const item=data[i];
+      const pick=idx=>{ if(picked===null) setPicked(idx); };
+      const next=()=>{ setPicked(null); setI((i+1)%data.length); };
+      const opt=item.options[picked]||{};
+      return html`<div class="card">
+        ${title && html`<p class="kicker" style=${{marginBottom:10}}>${title}</p>`}
+        <p class="faint" style=${{margin:'0 0 6px'}}>Question ${i+1} of ${data.length}</p>
+        <p class="q" style=${{marginTop:0}}>${item.q}</p>
+        ${item.options.map((o,idx)=>{
+          const reveal=picked!==null;
+          const cls='opt'+(reveal&&o.correct?' correct':reveal&&idx===picked&&!o.correct?' wrong':'');
+          return html`<button key=${idx} class=${cls} disabled=${reveal} onClick=${()=>pick(idx)}>${o.text}</button>`;
+        })}
+        ${picked!==null && html`<div class=${'feedback '+(opt.correct?'good':'bad')}>
+          <strong>${opt.correct?'Correct. ':'Not quite. '}</strong>${opt.feedback}
+          <div style=${{marginTop:10}}>
+            <button class="btn" onClick=${next}>${i+1<data.length?'Next':'Restart'}</button>
+          </div>
+        </div>`}
+      </div>`;
+    }
+
+    /* ================= 2048 game engine (mirrors game/movement.py semantics) ================= */
+
+    function slideMergeRowLeft(row){
+      const nz = row.filter(x=>x!==0);
+      const out=[], merged=[];
+      let i=0;
+      while(i<nz.length){
+        if(i+1<nz.length && nz[i]===nz[i+1]){ out.push(nz[i]*2); merged.push(nz[i]*2); i+=2; }
+        else { out.push(nz[i]); i+=1; }
+      }
+      while(out.length<4) out.push(0);
+      return [out, merged];
+    }
+    const T = g => g[0].map((_,c)=>g.map(r=>r[c]));       // transpose
+    const rev = g => g.map(r=>[...r].reverse());
+    function applyMove(grid, dir){
+      let g = grid.map(r=>[...r]);
+      if(dir==='up') g = T(g);
+      if(dir==='down') g = T(g);
+      if(dir==='right' || dir==='down') g = rev(g);
+      const merged=[];
+      g = g.map(row=>{ const [nr,m]=slideMergeRowLeft(row); merged.push(...m); return nr; });
+      if(dir==='right' || dir==='down') g = rev(g);
+      if(dir==='up' || dir==='down') g = T(g);
+      const changed = JSON.stringify(g)!==JSON.stringify(grid);
+      return [g, merged, changed];
+    }
+    function emptyCells(g){ const out=[]; for(let r=0;r<4;r++)for(let c=0;c<4;c++) if(g[r][c]===0) out.push([r,c]); return out; }
+    function spawnTile(g){
+      const cells=emptyCells(g); if(!cells.length) return [g,null];
+      const [r,c]=cells[Math.floor(Math.random()*cells.length)];
+      const v = Math.random()<0.9 ? 2 : 4;
+      const ng=g.map(row=>[...row]); ng[r][c]=v;
+      return [ng,{r,c,v}];
+    }
+    function gameOver(g){ return !['left','right','up','down'].some(d=>applyMove(g,d)[2]); }
+
+    const TILE_BG = {0:'var(--bg)',2:'#ece6da',4:'#e8ddc4',8:'#e8b98a',16:'#e59f6d',
+      32:'#e28560',64:'#df6a4a',128:'#e3c96a',256:'#e2c452',512:'#dfbe3d',1024:'#dcb928',2048:'#d9b411'};
+    function tileStyle(v){
+      if(!v) return {background:'var(--surface)',color:'var(--text-faint)'};
+      return {background:TILE_BG[v]||'#3c3a33', color: v<=4 ? '#5b5648' : '#fff',
+        fontSize: v>=1024 ? '.9rem' : v>=128 ? '1rem' : '1.15rem'};
+    }
+    function BoardView({ grid, flash }){
+      return html`<div class="grid2048">
+        ${grid.flatMap((row,r)=>row.map((v,c)=>{
+          const hot = flash && flash.r===r && flash.c===c;
+          return html`<div key=${r+'-'+c} class="tile"
+            style=${{...tileStyle(v), outline: hot?'2px solid var(--accent)':'none'}}>${v||''}</div>`;
+        }))}
+      </div>`;
+    }
+
+    /* Playable 2048, with optional pause-at-afterstate mode */
+    function Game2048({ pauseSpawn, caption }){
+      const fresh = ()=>{ let g=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+        [g]=spawnTile(g); [g]=spawnTile(g); return g; };
+      const [grid,setGrid]=useState(fresh);
+      const [score,setScore]=useState(0);
+      const [phase,setPhase]=useState('play');   // 'play' | 'afterstate'
+      const [lastReward,setLastReward]=useState(null);
+      const [flash,setFlash]=useState(null);
+      const [msg,setMsg]=useState('');
+      const doMove=useCallback(dir=>{
+        if(phase!=='play') return;
+        const [g,merged,changed]=applyMove(grid,dir);
+        if(!changed){ setMsg('Illegal move (nothing changed) → changed=False, no spawn.'); return; }
+        const reward=merged.reduce((a,b)=>a+b,0);
+        setLastReward(reward); setScore(s=>s+reward); setMsg('');
+        if(pauseSpawn){ setGrid(g); setPhase('afterstate'); setFlash(null); }
+        else { const [g2,sp]=spawnTile(g); setGrid(g2); setFlash(sp);
+          if(gameOver(g2)) setMsg('Game over: no move changes the board.'); }
+      },[grid,phase,pauseSpawn]);
+      const doSpawn=()=>{ const [g2,sp]=spawnTile(grid); setGrid(g2); setFlash(sp); setPhase('play');
+        if(gameOver(g2)) setMsg('Game over: no move changes the board.'); };
+      const reset=()=>{ setGrid(fresh()); setScore(0); setPhase('play'); setLastReward(null); setFlash(null); setMsg(''); };
+      const onKey=e=>{
+        const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[e.key];
+        if(m){ e.preventDefault(); doMove(m); }
+      };
+      const empt = emptyCells(grid).length;
+      return html`<div class="fig" tabIndex="0" onKeyDown=${onKey} style=${{outline:'none'}}>
+        ${caption && html`<p class="faint" style=${{textAlign:'center',margin:'0 0 12px'}}>${caption}</p>`}
+        <${BoardView} grid=${grid} flash=${flash} />
+        <div style=${{display:'flex',justifyContent:'center',gap:16,marginTop:12,fontSize:'.9rem'}}>
+          <span>score <strong>${score}</strong></span>
+          ${lastReward!==null && html`<span class="muted">last reward <strong style=${{color:'var(--good)'}}>+${lastReward}</strong></span>`}
+          <span class="muted">${empt} empty</span>
+        </div>
+        ${phase==='afterstate' && html`<div class="feedback" style=${{textAlign:'center'}}>
+          <strong>This is the afterstate.</strong> The slide and merges are done, deterministic, no random tile yet.
+          The reward (+${lastReward}) is already known. Now the environment acts:
+          a 2 (90%) or a 4 (10%) lands on one of the ${empt} empty cells.
+          <div style=${{marginTop:10}}><button class="btn" onClick=${doSpawn}>Spawn random tile →</button></div>
+        </div>`}
+        ${msg && html`<p class="faint" style=${{textAlign:'center',marginTop:8}}>${msg}</p>`}
+        <div style=${{display:'flex',justifyContent:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>
+          ${['left','up','down','right'].map(d=>html`<button key=${d} class="btn btn-ghost"
+            disabled=${phase!=='play'} onClick=${()=>doMove(d)}>${{left:'←',up:'↑',down:'↓',right:'→'}[d]} ${d}</button>`)}
+          <button class="btn btn-ghost" onClick=${reset}>reset</button>
+        </div>
+        <p class="faint" style=${{textAlign:'center',marginTop:8}}>Click the board once, then arrow keys work too.
+          Same slide/merge semantics as our <code>game/movement.py</code> (one merge per tile per move).</p>
+      </div>`;
+    }
+
+    /* ================= Move-flow stepper (code-level trace of Game.move) ================= */
+    function Stepper({ steps, title }){
+      const [i,setI]=useState(0), [predicting,setPredicting]=useState(true);
+      const last=i>=steps.length-1;
+      return html`<div class="card">
+        ${title && html`<p class="kicker" style=${{marginBottom:8}}>${title}</p>`}
+        <p class="faint" style=${{margin:'0 0 8px'}}>Step ${i+1} of ${steps.length}</p>
+        <div class="mono">${steps[i].state}</div>
+        <p class="muted" style=${{marginTop:8,fontSize:'.95rem'}}>${steps[i].note}</p>
+        <div style=${{display:'flex',gap:8}}>
+          ${i>0 && html`<button class="btn btn-ghost" onClick=${()=>{setI(i-1);setPredicting(false);}}>← Back</button>`}
+          ${!last && (predicting
+            ? html`<button class="btn" onClick=${()=>setPredicting(false)}>Predict what happens next, then reveal</button>`
+            : html`<button class="btn btn-ghost" onClick=${()=>{setI(i+1);setPredicting(true);}}>Advance →</button>`)}
+        </div>
+      </div>`;
+    }
+
+    /* ================= Expectimax tree explorer ================= */
+    function ExpectimaxExplorer(){
+      // Toy tree, depth 1. Numbers chosen so max-of-best-case and min-node both pick differently.
+      // LEFT: reward 4; chance: 90% → leaf V=10, 10% → leaf V=0.   E = 4 + (0.9·10 + 0.1·0) = 13
+      // UP:   reward 0; chance: 90% → leaf V=8,  10% → leaf V=8.   E = 0 + 8 = 8
+      const [picked,setPicked]=useState(null);
+      const [showMin,setShowMin]=useState(false);
+      const Node=({label,sub,color})=>html`<div style=${{border:'1px solid var(--border)',borderRadius:8,
+        padding:'8px 12px',background:color||'var(--bg)',textAlign:'center',fontSize:'.86rem',minWidth:86}}>
+        <div style=${{fontWeight:600}}>${label}</div>
+        ${sub && html`<div class="faint">${sub}</div>`}
+      </div>`;
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 14px'}}>Interactive · a 1-ply expectimax decision with real numbers</p>
+        <div style=${{display:'flex',justifyContent:'center'}}>
+          <${Node} label="MAX node" sub="agent picks a move" color="var(--accent-soft)" />
+        </div>
+        <div style=${{display:'flex',justifyContent:'space-around',margin:'14px 0 0',gap:12,flexWrap:'wrap'}}>
+          <div style=${{textAlign:'center',flex:1,minWidth:220}}>
+            <div class="faint" style=${{marginBottom:6}}>action = left · immediate reward <strong>+4</strong></div>
+            <${Node} label="CHANCE node" sub="tile spawn" />
+            <div style=${{display:'flex',justifyContent:'center',gap:10,marginTop:10}}>
+              <${Node} label="V = 10" sub="p = 0.9 (tile 2)" />
+              <${Node} label="V = 0" sub="p = 0.1 (tile 4)" />
+            </div>
+          </div>
+          <div style=${{textAlign:'center',flex:1,minWidth:220}}>
+            <div class="faint" style=${{marginBottom:6}}>action = up · immediate reward <strong>+0</strong></div>
+            <${Node} label="CHANCE node" sub="tile spawn" />
+            <div style=${{display:'flex',justifyContent:'center',gap:10,marginTop:10}}>
+              <${Node} label="V = 8" sub="p = 0.9 (tile 2)" />
+              <${Node} label="V = 8" sub="p = 0.1 (tile 4)" />
+            </div>
+          </div>
+        </div>
+        <div style=${{marginTop:18,textAlign:'center'}}>
+          <p class="q">Which move does expectimax pick? Commit before revealing.</p>
+          <div style=${{display:'flex',gap:8,justifyContent:'center'}}>
+            <button class="btn btn-ghost" disabled=${picked!==null} onClick=${()=>setPicked('left')}>left</button>
+            <button class="btn btn-ghost" disabled=${picked!==null} onClick=${()=>setPicked('up')}>up</button>
+          </div>
+        </div>
+        ${picked!==null && html`<div class=${'feedback '+(picked==='left'?'good':'bad')}>
+          <strong>${picked==='left' ? 'Correct: left.' : 'It picks left.'}</strong>
+          <div style=${{margin:'10px 0'}}>
+            <${TeX} block tex=${'E[\\text{left}] = 4 + (0.9 \\cdot 10 + 0.1 \\cdot 0) = 4 + 9 = 13'} />
+            <${TeX} block tex=${'E[\\text{up}] = 0 + (0.9 \\cdot 8 + 0.1 \\cdot 8) = 0 + 8 = 8'} />
+          </div>
+          The chance node takes the <em>probability-weighted average</em> of its children, and the max node takes the best action.
+          Left carries a 10% risk of a bad board (V=0), but on average it is clearly better.
+          <div style=${{marginTop:10}}>
+            ${!showMin
+              ? html`<button class="btn btn-ghost" onClick=${()=>setShowMin(true)}>What would a MIN node have done?</button>`
+              : html`<div style=${{marginTop:8}}>
+                  A min node assumes the environment plays the <em>worst case on purpose</em>:
+                  min(left) = 4 + 0 = 4, min(up) = 0 + 8 = 8 → it would pick <strong>up</strong>, fleeing a risk that
+                  only happens 10% of the time. That is why 2048 uses a chance node: the random tile is a dice roll,
+                  not an adversary. This is exactly the point the TA flagged on our proposal.
+                </div>`}
+          </div>
+        </div>`}
+      </div>`;
+    }
+
+    /* ================= N-tuple lookup demo ================= */
+    function NTupleDemo(){
+      const board=[[8,4,2,2],[16,8,4,0],[2,64,2,0],[0,0,4,2]];
+      const exp=v=>v===0?0:Math.log2(v);
+      const TUPLES=[
+        {name:'row 0',cells:[[0,0],[0,1],[0,2],[0,3]]},
+        {name:'row 1',cells:[[1,0],[1,1],[1,2],[1,3]]},
+        {name:'row 2',cells:[[2,0],[2,1],[2,2],[2,3]]},
+        {name:'row 3',cells:[[3,0],[3,1],[3,2],[3,3]]},
+        {name:'col 0',cells:[[0,0],[1,0],[2,0],[3,0]]},
+        {name:'col 1',cells:[[0,1],[1,1],[2,1],[3,1]]},
+        {name:'col 2',cells:[[0,2],[1,2],[2,2],[3,2]]},
+        {name:'col 3',cells:[[0,3],[1,3],[2,3],[3,3]]},
+      ];
+      // deterministic pseudo-random "trained" LUT value from index (illustrative only)
+      const lut=idx=>Math.round((((idx*2654435761)>>>0)%2000)/10-100)/1;
+      const [sel,setSel]=useState([0]);
+      const toggle=i=>setSel(s=>s.includes(i)?s.filter(x=>x!==i):[...s,i]);
+      const selCells=new Set(sel.flatMap(i=>TUPLES[i].cells.map(([r,c])=>r+','+c)));
+      const rows=sel.map(i=>{
+        const t=TUPLES[i];
+        const exps=t.cells.map(([r,c])=>exp(board[r][c]));
+        const idx=exps.reduce((a,e,k)=>a+e*Math.pow(16,k),0);
+        return {name:t.name, exps, idx, val:lut(idx)};
+      });
+      const total=rows.reduce((a,r)=>a+r.val,0);
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 12px'}}>Interactive · toggle tuples, watch the value assemble</p>
+        <div class="grid2048" style=${{maxWidth:280}}>
+          ${board.flatMap((row,r)=>row.map((v,c)=>html`<div key=${r+'-'+c} class="tile"
+            style=${{...tileStyle(v), opacity:selCells.size&&!selCells.has(r+','+c)?0.28:1}}>${v||''}</div>`))}
+        </div>
+        <div style=${{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'center',margin:'14px 0'}}>
+          ${TUPLES.map((t,i)=>html`<button key=${i} class="btn btn-ghost"
+            style=${sel.includes(i)?{borderColor:'var(--accent)',color:'var(--accent)'}:{}}
+            onClick=${()=>toggle(i)}>${t.name}</button>`)}
+        </div>
+        ${rows.length ? html`<div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>tuple</th><th>cell exponents</th><th>table index</th><th>LUT value</th></tr></thead>
+          <tbody>
+            ${rows.map(r=>html`<tr key=${r.name}>
+              <td><code>${r.name}</code></td>
+              <td><code>[${r.exps.join(', ')}]</code></td>
+              <td><code>${r.idx.toLocaleString()}</code> <span class="faint">of 16⁴ = 65,536</span></td>
+              <td style=${{fontVariantNumeric:'tabular-nums'}}>${r.val.toFixed(1)}</td>
+            </tr>`)}
+          </tbody>
+        </table></div>` : html`<p class="faint" style=${{textAlign:'center'}}>Select at least one tuple.</p>`}
+        <p style=${{textAlign:'center',margin:'6px 0 0'}}>
+          <${TeX} tex=${'V(\\text{board}) = \\sum_i \\text{LUT}_i[\\,\\text{idx}_i\\,]'} />
+          ${'\u00A0'}=${'\u00A0'}<strong style=${{color:'var(--accent)'}}>${total.toFixed(1)}</strong>
+        </p>
+        <p class="faint" style=${{textAlign:'center',marginTop:6}}>Cell encoding: tile value → exponent (0→0, 2→1, 4→2, 8→3, …).
+          Index = base-16 digits. LUT values here are illustrative; the real ones come out of training.
+          Evaluating a board = a handful of array lookups and a sum. No forward pass, no layers.</p>
+      </div>`;
+    }
+
+    /* ================= TD learning convergence demo ================= */
+    function TDDemo(){
+      const TRUE_V=100, NOISE=25;
+      const [alpha,setAlpha]=useState(0.10);
+      const [histories,setHistories]=useState([[0]]);   // list of runs, current run last
+      const hist=histories[histories.length-1];
+      const V=hist[hist.length-1];
+      const stepN=n=>{
+        setHistories(hs=>{
+          const h=[...hs[hs.length-1]];
+          let v=h[h.length-1];
+          for(let k=0;k<n;k++){
+            const sample=TRUE_V+(Math.random()*2-1)*NOISE;   // r + V(next afterstate), noisy
+            v=v+alpha*(sample-v);
+            h.push(v);
+          }
+          return [...hs.slice(0,-1), h];
+        });
+      };
+      const reset=()=>setHistories(hs=>[...hs.map(h=>h), [0]].slice(-4));  // keep up to 3 ghosts + new
+      const W=560,H=200,PAD=30,N=Math.max(60,hist.length);
+      const x=i=>PAD+(W-2*PAD)*i/(N-1);
+      const y=v=>H-PAD-(H-2*PAD)*Math.min(v,140)/140;
+      const path=h=>h.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 10px'}}>Interactive · one value estimate being trained by TD updates</p>
+        <svg viewBox=${'0 0 '+W+' '+H} style=${{width:'100%',height:'auto'}}>
+          <line x1=${PAD} y1=${y(TRUE_V)} x2=${W-PAD} y2=${y(TRUE_V)} stroke="var(--good)" stroke-dasharray="5 4" stroke-width="1.4"/>
+          <text x=${W-PAD} y=${y(TRUE_V)-6} text-anchor="end" fill="var(--good)" font-size="11">true value = 100</text>
+          <line x1=${PAD} y1=${H-PAD} x2=${W-PAD} y2=${H-PAD} stroke="var(--border)"/>
+          <line x1=${PAD} y1=${PAD-10} x2=${PAD} y2=${H-PAD} stroke="var(--border)"/>
+          <text x=${PAD} y=${H-10} fill="var(--text-faint)" font-size="11">updates →</text>
+          ${histories.slice(0,-1).map((h,i)=>html`<path key=${i} d=${path(h)} fill="none" stroke="var(--text-faint)" stroke-width="1" opacity="0.35"/>`)}
+          <path d=${path(hist)} fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <circle cx=${x(hist.length-1)} cy=${y(V)} r="3.5" fill="var(--accent)"/>
+        </svg>
+        <div style=${{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',justifyContent:'center',marginTop:10}}>
+          <label style=${{fontSize:'.9rem'}}>α (learning rate): <strong>${alpha.toFixed(2)}</strong></label>
+          <input type="range" min="0.01" max="0.9" step="0.01" value=${alpha}
+            onInput=${e=>setAlpha(+e.target.value)} style=${{width:180}} />
+          <button class="btn btn-ghost" onClick=${()=>stepN(1)}>1 update</button>
+          <button class="btn" onClick=${()=>stepN(50)}>50 updates</button>
+          <button class="btn btn-ghost" onClick=${reset}>new run</button>
+        </div>
+        <p style=${{textAlign:'center',margin:'12px 0 0'}}>
+          <${TeX} tex=${'V \\leftarrow V + \\alpha\\,\\big[\\underbrace{(r + V(s\'_{next}))}_{\\text{observed target}} - V\\big]'} />
+          ${'\u00A0'}·${'\u00A0'}current <${TeX} tex=${'V'} /> = <strong style=${{color:'var(--accent)'}}>${V.toFixed(1)}</strong>
+        </p>
+        <p class="faint" style=${{textAlign:'center',marginTop:6}}>The target is noisy (each game plays out differently), so the estimate
+          never lands exactly — it hovers. Try α = 0.8: fast but jittery. Try α = 0.02: smooth but slow.
+          In the real system this update runs on every move of every self-play game, pushing the exact LUT entries that were summed.</p>
+      </div>`;
+    }
+
+    /* ================= Index anatomy: one lookup, end to end ================= */
+    function IndexAnatomy(){
+      const CYCLE=[0,2,4,8,16,32,64,128];
+      const [board,setBoard]=useState([[8,4,2,2],[16,8,4,0],[2,64,2,0],[0,0,4,2]]);
+      const [ti,setTi]=useState(0);
+      const TUPLES=[
+        {name:'row 0',cells:[[0,0],[0,1],[0,2],[0,3]]},
+        {name:'col 3',cells:[[0,3],[1,3],[2,3],[3,3]]},
+        {name:'square (1,1)',cells:[[1,1],[1,2],[2,1],[2,2]]},
+      ];
+      const t=TUPLES[ti];
+      const inT=(r,c)=>t.cells.some(([tr,tc])=>tr===r&&tc===c);
+      const exp=v=>v===0?0:Math.log2(v);
+      const vals=t.cells.map(([r,c])=>board[r][c]);
+      const exps=vals.map(exp);
+      const idx=exps.reduce((a,e,k)=>a+e*Math.pow(16,k),0);
+      const lut=i=>Math.round((((i*2654435761)>>>0)%2000)/10-100)/1;
+      const cyc=(r,c)=>{
+        if(!inT(r,c)) return;
+        setBoard(b=>b.map((row,rr)=>row.map((v,cc)=>{
+          if(rr!==r||cc!==c) return v;
+          return CYCLE[(CYCLE.indexOf(v)+1)%CYCLE.length];
+        })));
+      };
+      const W=560,SX=30,EX=530,SY=26;
+      const mx=SX+(EX-SX)*idx/65535;
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 10px'}}>Interactive · anatomy of ONE lookup — click the highlighted cells to change their values</p>
+        <div style=${{display:'flex',gap:6,justifyContent:'center',marginBottom:12,flexWrap:'wrap'}}>
+          ${TUPLES.map((tp,i)=>html`<button key=${i} class="btn btn-ghost"
+            style=${i===ti?{borderColor:'var(--accent)',color:'var(--accent)'}:{}}
+            onClick=${()=>setTi(i)}>${tp.name}</button>`)}
+        </div>
+        <div class="grid2048" style=${{maxWidth:260}}>
+          ${board.flatMap((row,r)=>row.map((v,c)=>html`<div key=${r+'-'+c} class="tile"
+            onClick=${()=>cyc(r,c)}
+            style=${{...tileStyle(v), cursor:inT(r,c)?'pointer':'default',
+              opacity:inT(r,c)?1:0.25, outline:inT(r,c)?'2px solid var(--accent)':'none'}}>${v||''}</div>`))}
+        </div>
+        <div style=${{maxWidth:520,margin:'16px auto 0',fontSize:'.95rem'}}>
+          <div style=${{display:'grid',gridTemplateColumns:'150px 1fr',gap:'6px 12px',alignItems:'baseline'}}>
+            <span class="muted">1 · cell values</span><code>[${vals.join(', ')}]</code>
+            <span class="muted">2 · exponents</span><code>[${exps.join(', ')}]</code>
+            <span class="muted">3 · base-16 index</span>
+            <span><${TeX} tex=${exps[0]+' + 16 \\cdot '+exps[1]+' + 256 \\cdot '+exps[2]+' + 4096 \\cdot '+exps[3]+' = '+idx.toLocaleString()} /></span>
+          </div>
+        </div>
+        <svg viewBox=${'0 0 '+W+' 92'} style=${{width:'100%',height:'auto',marginTop:14}}>
+          <rect x=${SX} y=${SY} width=${EX-SX} height="18" rx="4" fill="var(--surface-2)" stroke="var(--border)"/>
+          ${[0.125,0.25,0.375,0.5,0.625,0.75,0.875].map(f=>html`<line key=${f}
+            x1=${SX+(EX-SX)*f} y1=${SY} x2=${SX+(EX-SX)*f} y2=${SY+18} stroke="var(--border)" stroke-width="1"/>`)}
+          <text x=${SX} y=${SY-7} fill="var(--text-faint)" font-size="10">index 0</text>
+          <text x=${EX} y=${SY-7} text-anchor="end" fill="var(--text-faint)" font-size="10">65,535</text>
+          <rect x=${Math.min(Math.max(mx-2,SX),EX-4)} y=${SY-3} width="4" height="24" rx="2" fill="var(--accent)"/>
+          <text x=${Math.min(Math.max(mx,SX+70),EX-70)} y=${SY+44} text-anchor="middle" fill="var(--text)" font-size="12" font-weight="600">
+            table[${idx.toLocaleString()}] = ${lut(idx).toFixed(1)}</text>
+          <text x=${Math.min(Math.max(mx,SX+70),EX-70)} y=${SY+60} text-anchor="middle" fill="var(--text-faint)" font-size="10">
+            this tuple's table · one plain array of 65,536 numbers</text>
+        </svg>
+        <p class="faint" style=${{textAlign:'center',marginTop:8}}>Change one cell → one digit of the index changes → a different
+          entry of the array is read. That is the entire "network": pattern in, array entry out. (Values illustrative.)</p>
+      </div>`;
+    }
+
+    /* ================= Symmetry demo: 8 boards, one shared table ================= */
+    function SymmetryDemo(){
+      // Board chosen so the row-0 indices of the 8 symmetries spread visibly across the table
+      // (verified in Node: 8 distinct indices, min gap ~1.8% of the bar).
+      const base=[[4,8,4,64],[512,128,2,256],[2,16,512,512],[256,64,2,1024]];
+      const rotCW=g=>g.map((row,r)=>row.map((_,c)=>g[3-c][r]));
+      const mirror=g=>g.map(row=>[...row].reverse());
+      const boards=[]; let g=base;
+      for(let k=0;k<4;k++){ boards.push({g,label:'rot '+k*90+'°'}); g=rotCW(g); }
+      g=mirror(base);
+      for(let k=0;k<4;k++){ boards.push({g,label:'mirror + '+k*90+'°'}); g=rotCW(g); }
+      const exp=v=>v===0?0:Math.log2(v);
+      const idxRow0=gr=>gr[0].map(exp).reduce((a,e,k)=>a+e*Math.pow(16,k),0);
+      const [sel,setSel]=useState(0);
+      const idxs=boards.map(b=>idxRow0(b.g));
+      const W=560,SX=30,EX=530,SY=16;
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 12px'}}>Interactive · one board, its 8 symmetries, ONE shared table — click a board</p>
+        <div style=${{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:10,maxWidth:540,margin:'0 auto'}}>
+          ${boards.map((b,i)=>html`<div key=${i} onClick=${()=>setSel(i)}
+            style=${{cursor:'pointer',padding:6,borderRadius:8,textAlign:'center',
+              border:'1px solid '+(i===sel?'var(--accent)':'var(--border)'),
+              background:i===sel?'var(--accent-soft)':'var(--bg)'}}>
+            <div style=${{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:2}}>
+              ${b.g.flatMap((row,r)=>row.map((v,c)=>html`<div key=${r+'-'+c}
+                style=${{...tileStyle(v),
+                  aspectRatio:'1',borderRadius:2,display:'flex',alignItems:'center',justifyContent:'center',
+                  fontWeight:600,fontSize:v>=1024?'.42rem':v>=128?'.5rem':'.58rem',
+                  outline:r===0?'1.5px solid '+(i===sel?'var(--accent)':'var(--text-faint)'):'none',
+                  outlineOffset:'-1.5px'}}>${v||''}</div>`))}
+            </div>
+            <div class="faint" style=${{marginTop:4,fontSize:'.7rem'}}>${b.label}</div>
+          </div>`)}
+        </div>
+        <svg viewBox=${'0 0 '+W+' 74'} style=${{width:'100%',height:'auto',marginTop:16}}>
+          <rect x=${SX} y=${SY} width=${EX-SX} height="18" rx="4" fill="var(--surface-2)" stroke="var(--border)"/>
+          <text x=${SX} y=${SY-5} fill="var(--text-faint)" font-size="10">the ONE shared "row" table · 0 … 65,535</text>
+          ${idxs.map((ix,i)=>{
+            const x=SX+(EX-SX)*ix/65535;
+            return html`<rect key=${i} x=${Math.min(Math.max(x-1.5,SX),EX-3)} y=${SY-2} width="3" height="22" rx="1.5"
+              fill=${i===sel?'var(--accent)':'var(--text-faint)'} opacity=${i===sel?1:0.55}
+              style=${{cursor:'pointer'}} onClick=${()=>setSel(i)}/>`;
+          })}
+          <text x=${(SX+EX)/2} y=${SY+46} text-anchor="middle" fill="var(--text)" font-size="12">
+            ${boards[sel].label} reads/writes table[${idxs[sel].toLocaleString()}]</text>
+        </svg>
+        <p class="faint" style=${{textAlign:'center',marginTop:6}}>The outlined row is the same tuple read in each orientation.
+          Eight orientations → eight different entries — but all in the <em>same</em> table. One real position visited
+          in a game updates its entire symmetry class at once: ~8× the data efficiency, free.</p>
+      </div>`;
+    }
+
+    /* ================= Quizzes ================= */
+
+    const QUIZ_DESTINATION=[
+      { q:"In one sentence, what is the actual engineering change of Milestone 2?",
+        options:[
+          { text:"Rewrite the expectimax search to be deeper and faster.", correct:false,
+            feedback:"The search already works and stays as-is. Depth tuning is an evaluation experiment, not the milestone. The change happens at the leaves of the tree, not in its structure." },
+          { text:"Replace the hand-written evaluate() heuristic with a value function learned by self-play.", correct:true,
+            feedback:"That is the whole milestone in one line. Engine and expectimax stand; the leaf evaluation becomes an n-tuple network trained by TD learning." },
+          { text:"Add a min node so the agent can handle the environment's moves.", correct:false,
+            feedback:"This is the misconception the TA explicitly warned about. The environment is random, not adversarial, so its node is a chance node (weighted average), which we already have. A min node would make the agent paranoid about outcomes that are just unlucky dice." },
+          { text:"Switch to a deep Q-network with PyTorch.", correct:false,
+            feedback:"That was the proposal's original idea, and it is exactly what we should not centre the milestone on: the literature shows deep RL underperforms on 2048 (a DQN barely reached tile 512), the TA asked us to stay on course topics, and training a DQN well takes longer than we have. It survives only as an optional ablation." },
+        ]},
+    ];
+
+    const QUIZ_EXPECTIMAX=[
+      { q:"Why does 2048 use a chance node instead of a min node?",
+        options:[
+          { text:"Because a min node would be too slow to compute.", correct:false,
+            feedback:"Speed is not the reason — min and average cost the same to compute over the same children. The reason is about what the environment IS: it rolls dice, it does not choose against us." },
+          { text:"Because the random tile is not trying to hurt us; it follows fixed probabilities, so the correct summary of that level is the expected value.", correct:true,
+            feedback:"Exactly. Minimax models an adversary that picks the worst case for you on purpose. 2048's environment picks randomly: 90% a 2, 10% a 4, uniform over empty cells. The honest model of a dice roll is its probability-weighted average." },
+          { text:"Because 2048 has no second player, so we can skip the opponent level entirely.", correct:false,
+            feedback:"Half right, and the half that is wrong matters: we cannot skip the level, because the spawned tile genuinely changes the board and must be anticipated. We model it — just as chance, not as malice." },
+        ]},
+      { q:"Our chance_node samples at most 10 empty cells instead of expanding all of them. What does that trade away?",
+        options:[
+          { text:"Nothing; with 10 samples the expectation is exact.", correct:false,
+            feedback:"Sampling gives an estimate of the expected value, not the exact value — with up to 14 empty cells, 10 samples can miss some. It is usually close, but it is an approximation." },
+          { text:"A bit of accuracy in the expected value, in exchange for a much smaller branching factor and a faster search.", correct:true,
+            feedback:"Right. Full expansion is (empty cells × 2 tile values) children per chance node, which explodes with depth. Sampling caps it. The estimate is noisy but unbiased enough, and the speedup lets us search deeper — usually a net win." },
+          { text:"It makes the agent ignore 4-tiles.", correct:false,
+            feedback:"No — for every sampled cell we still expand both the 2 (weight 0.9) and the 4 (weight 0.1). What is subsampled is the set of cells, not the tile values." },
+        ]},
+    ];
+
+    const QUIZ_NTUPLE=[
+      { q:"What is inside a trained n-tuple network?",
+        options:[
+          { text:"Layers of neurons with weights and activation functions.", correct:false,
+            feedback:"This is the trap in the name. There are no layers, no neurons, no activations, no batches. If your mental image has a forward pass in it, replace it with: arrays, indexed by board patterns, summed." },
+          { text:"Lookup tables — one per tuple — whose entries are learned scores for local board patterns.", correct:true,
+            feedback:"That is all of it. Each tuple watches a fixed set of cells; the pattern of those cells is an index into that tuple's table; the board's value is the sum of the looked-up entries. Training = nudging table entries." },
+          { text:"A tree of board positions with their exact values.", correct:false,
+            feedback:"That would be a transposition table / game-tree cache, a different object. The n-tuple network generalizes: it scores patterns of a few cells, so boards it has never seen still get a value from their familiar parts." },
+        ]},
+      { q:"Why do the 8 board symmetries make training ~8× more data-efficient?",
+        options:[
+          { text:"Because each symmetry has its own separate table that trains in parallel.", correct:false,
+            feedback:"It is the opposite: the point is that the symmetries SHARE one table. Separate tables would learn 8 copies of the same knowledge slowly." },
+          { text:"Because one observed board updates the same shared tables through all 8 rotations/reflections, so each experience teaches 8 equivalent positions at once.", correct:true,
+            feedback:"Right — 2048's rules do not care about orientation, so a pattern's value is orientation-independent, and every real board visit writes knowledge for its whole symmetry class." },
+          { text:"Because symmetry reduces the board to 2 cells.", correct:false,
+            feedback:"Symmetry does not shrink the board; it identifies equivalent boards. The tuple sizes stay the same — what changes is that equivalent patterns share one table entry." },
+        ]},
+    ];
+
+    const QUIZ_FINAL=[
+      { q:"Trace one decision at play time (after M2). Which sequence is right?",
+        options:[
+          { text:"max_node tries legal moves → each afterstate goes to chance_node → chance node averages over sampled spawns → recursion bottoms out at evaluate(), which is now ntuple.value() → best action wins.", correct:true,
+            feedback:"That is the full integrated system: search from M1, learned value from M2, joined at the leaf." },
+          { text:"The n-tuple network picks the move directly, and expectimax double-checks it.", correct:false,
+            feedback:"The n-tuple network scores boards; it never picks moves by itself (that would be 1-ply greedy play, our baseline). In the final system expectimax picks the move, consulting the n-tuple value at its leaves." },
+          { text:"TD learning runs during the game to adapt to the current board.", correct:false,
+            feedback:"Training and playing are separate phases. TD runs during self-play training and writes the tables; at play/demo time the tables are frozen and just read. (Continuing to learn at play time exists in research, but it is not our design.)" },
+        ]},
+      { q:"During TD training we play 1-ply greedy (argmax of r + V(afterstate)) instead of full expectimax. Why?",
+        options:[
+          { text:"Because expectimax would give wrong training targets.", correct:false,
+            feedback:"Not wrong — just expensive. The targets would be fine (arguably better); the problem is cost per move." },
+          { text:"Because training needs millions of moves, and a cheap policy makes that affordable; the deep search is added later, at play time, on top of the finished value function.", correct:true,
+            feedback:"Exactly the division of labour: cheap moves during learning (volume matters), expensive thinking during the demo (quality matters). The papers train greedy and then bolt 3-ply expectimax on top for +80% score." },
+          { text:"Because the n-tuple network cannot be read during training.", correct:false,
+            feedback:"It is read constantly during training — the greedy argmax consults V(afterstate) on every move. What we avoid is the exponential tree walk per training move." },
+        ]},
+      { q:"The report must document our change from the proposal (deep NN → n-tuple). What is the strongest way to frame it?",
+        options:[
+          { text:"Quietly drop the NN and hope nobody notices.", correct:false,
+            feedback:"The marking guide has an explicit changes-from-proposal section — hiding the change wastes free marks and looks careless. Documented, justified change is rewarded." },
+          { text:"As a course correction driven by the TA's feedback and the literature, with the NN kept as an optional ablation experiment.", correct:false,
+            feedback:"Close — this is the right frame, but the strongest version also shows the receipts: cite Szubert & Jaśkowski (97% win rate with n-tuple+TD) and the DQN-underperforms evidence, and if time allows, our own small NN run scoring below the n-tuple. Evidence beats narrative." },
+          { text:"As an evidence-backed course correction: TA feedback + published results (n-tuple TD ≈ 97% win rate; DQN stalls near tile 512), ideally with our own ablation numbers as proof.", correct:true,
+            feedback:"That is the full-marks version: it shows we read the feedback, checked the literature, made an engineering decision, and measured it." },
+        ]},
+    ];
+
+    /* ================= Page ================= */
+
+    const moveFlowSteps=[
+      { state:
+`board:                      score: 20
+   2   2   .   .
+   4   .   .   .
+   2   .   .   .
+   .   .   .   2`,
+        note:'The live board. The game loop asks the agent: choose_action(state). Everything the agent does happens on COPIES — the real board is untouched until the game applies the chosen move.' },
+      { state:
+`agent returns: "left"
+
+Game.move("left") calls:
+MOVES["left"](board.grid)
+  → new_grid, merged_values=[4], changed=True`,
+        note:'movement.py slides and merges. It returns three things: the slid grid, the list of merged tile values, and whether anything changed. Note what it does NOT do: spawn a tile. The returned grid is the afterstate.' },
+      { state:
+`afterstate:                 merged: [4]
+   4   .   .   .
+   4   .   .   .
+   2   .   .   .
+   2   .   .   .`,
+        note:'changed=True, so the game accepts the move. If changed were False (an illegal move), the game would return False and nothing would happen — this flag is our illegal-move detector, and max_node uses it too.' },
+      { state:
+`score += points_after_merge([4])
+score: 20 → 24        (reward = +4)`,
+        note:'score.py sums the merged values. This +4 is exactly the "reward" of the move in MDP terms — the quantity our RL agent will learn to accumulate.' },
+      { state:
+`spawn_tile(board)
+   4   .   .   .
+   4   .   2✦  .
+   2   .   .   .
+   2   .   .   .`,
+        note:'Only now does randomness enter: spawn.py drops a 2 (90%) or a 4 (10%) on a uniformly random empty cell. The board that results is the next state the agent will see. One full turn of the MDP loop is complete.' },
+    ];
+
+    /* ================= Sidebar content navigation (scroll-spy) ================= */
+    const SECTIONS=[
+      { id:'s1', n:'01', label:'Where we are' },
+      { id:'s2', n:'02', label:'The destination' },
+      { id:'s3', n:'03', label:'Expectimax' },
+      { id:'s4', n:'04', label:'The afterstate' },
+      { id:'s5', n:'05', label:'N-tuple network' },
+      { id:'s6', n:'06', label:'TD learning' },
+      { id:'s7', n:'07', label:'Integration' },
+      { id:'s8', n:'08', label:'Who does what' },
+      { id:'s9', n:'09', label:'Final check' },
+    ];
+    function SideNav(){
+      const [active,setActive]=useState('s1');
+      useEffect(()=>{
+        const onScroll=()=>{
+          let cur=SECTIONS[0].id;
+          for(const s of SECTIONS){
+            const el=document.getElementById(s.id);
+            if(el && el.getBoundingClientRect().top <= 140) cur=s.id;
+          }
+          setActive(cur);
+        };
+        onScroll();
+        addEventListener('scroll', onScroll, {passive:true});
+        return ()=>removeEventListener('scroll', onScroll);
+      },[]);
+      return html`<nav class="sidenav">
+        <p class="snav-title">2048 RL · Team Compass</p>
+        ${SECTIONS.map(s=>html`<a key=${s.id} href=${'#'+s.id} class=${active===s.id?'active':''}
+          onClick=${e=>{e.preventDefault();
+            const el=document.getElementById(s.id);
+            if(el) el.scrollIntoView({behavior:'smooth',block:'start'});}}>
+          <span class="sn">${s.n}</span><span>${s.label}</span>
+        </a>`)}
+      </nav>`;
+    }
+
+    function Guide(){
+      return html`<${React.Fragment}>
+        <${SideNav} />
+        <div class="wrap">
+        <p class="kicker">CMPT 310 · Group 1 · term project</p>
+        <h1>2048 RL — Team Compass</h1>
+        <p class="lead">One document for the whole team: where the project stands today, how every remaining
+          component works, how they lock together into the final system, and who builds what for Milestone 2.</p>
+        <div class="metastrip">
+          <span>M2 report · <strong>Jul 29</strong></span>
+          <span>Demo · <strong>Aug 7</strong> (attendance mandatory — missing = 0 on the project)</span>
+          <span>Final submission · <strong>Aug 12</strong></span>
+          <span class="faint">Repo facts verified against main, Jul 9</span>
+        </div>
+
+        <hr/>
+
+        <h2 id="s1">1 · Where we are</h2>
+        <p>Short version: <strong>Milestone 1 is functionally done, and we are ahead of where the plan says we should be.</strong>
+          The game engine is complete, the expectimax agent is implemented and merged into <code>main</code>, a random
+          baseline agent exists, and the full loop runs end to end. What remains for M2 is the learning half.</p>
+
+        <h3>The modules on main</h3>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>module</th><th>owner</th><th>what it does</th><th>status</th></tr></thead>
+          <tbody>
+            <tr><td><code>game/board.py</code></td><td>João</td><td>4×4 numpy grid, reset/copy/get-set tile, empty-cell helpers</td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>game/movement.py</code></td><td>Praneet</td><td>slide+merge for all 4 directions: <code>(new_grid, merged_values, changed)</code></td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>game/score.py</code></td><td>Ryan</td><td>points from merged tiles (= the move's reward)</td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>game/spawn.py</code></td><td>Jayden</td><td>random tile: 2 (90%) / 4 (10%) on a random empty cell</td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>game/game.py</code></td><td>Ryan</td><td>ties it together: <code>move()</code>, <code>is_game_over()</code>, scoring, spawning</td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>agents/agent.py</code></td><td>Praneet</td><td>base interface: <code>choose_action(state)</code></td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>agents/random_agent.py</code></td><td>Jayden</td><td>uniform random move — our evaluation baseline</td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>agents/expectimax_agent.py</code></td><td>João + Ryan + Praneet</td><td>max node, chance node (10-cell sampling), heuristic <code>evaluate()</code></td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td><code>ui/</code> (renderer, menu)</td><td>Ryan</td><td>pygame board renderer, header, menu, game loop</td><td><span class="statuschip chip-done">done</span></td></tr>
+            <tr><td>n-tuple network</td><td>—</td><td>learned value function (this document, §5)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+            <tr><td>TD training loop</td><td>—</td><td>self-play training (this document, §6)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+            <tr><td><code>main.py</code> entry point</td><td>João</td><td>MDP rollout loop: observe → choose → apply → repeat</td><td><span class="statuschip chip-done">done</span></td></tr>
+          </tbody>
+        </table></div>
+
+        <div class="callout good">
+          <p class="ct">The interface contract (agreed after a real bug — keep it)</p>
+          <p style=${{margin:0}}><strong>Agents take the raw 4×4 numpy grid, never the <code>Board</code> object.</strong>
+            Everything inside the agent (<code>movement.py</code>, <code>max_node</code>, <code>evaluate</code>) operates
+            on the grid; callers pass <code>game.board.grid.copy()</code>. We learned this the concrete way:
+            <code>main.py</code> originally passed the <code>Board</code> object and crashed with
+            <code>AttributeError: 'Board' object has no attribute 'shape'</code> — fixed Jul 9. If a merge ever
+            reintroduces the mismatch, that error message is the signature. With the contract respected the loop runs
+            clean: depth-2 expectimax played 200 moves in ~4 s and reached tile 256 in testing (heads-up for the demo:
+            depth 3 is ~1 s per move — fine for showing off, slow for evaluation runs).</p>
+        </div>
+
+        <h3>How one move flows through the code</h3>
+        <p>This is the whole game engine in one trace. If you understand these five steps, you understand M1.
+          Predict each step before advancing.</p>
+        <${Stepper} title="One turn of the real game loop" steps=${moveFlowSteps} />
+
+        <h3>Feel it</h3>
+        <p>This board runs the same slide/merge semantics as our engine (one merge per tile per move,
+          <code>changed</code> flag on illegal moves, 90/10 spawn). Play a few moves.</p>
+        <${Game2048} pauseSpawn=${false} caption="Our game, playable — same rules as game/movement.py" />
+
+        <details>
+          <summary>Two repo footguns worth knowing (30 seconds)</summary>
+          <p><strong>1. Never run <code>python -m unittest discover</code>.</strong> <code>tests/test_ui.py</code> is a manual
+            pygame script that opens a menu loop at import time — discover imports it and hangs forever. Run test files
+            individually (e.g. <code>python3 tests/test_renderer.py</code>).</p>
+          <p><strong>2. Branch convention.</strong> Each person codes on their own branch
+            (e.g. <code>max-node</code>, <code>praneet</code>, <code>Chance-node---Ryan</code>) and merges to
+            <code>main</code>. Re-read files after any pull — the working tree changes under you in a shared repo.</p>
+        </details>
+
+        <hr/>
+
+        <h2 id="s2">2 · The destination</h2>
+        <p>Everything in Milestone 2 is one sentence:</p>
+        <div class="callout good">
+          <p style=${{margin:0,fontSize:'1.05rem'}}><strong>Replace the hand-written <code>evaluate()</code> guess with a
+          value function the program learns by playing itself.</strong> The engine and the expectimax search stay exactly
+          as they are.</p>
+        </div>
+        <p>Right now, when the search reaches a leaf, it scores the board with
+          <code>100 × empty_cells + max_tile</code> — a hand-written guess that "space is good, big tiles are good."
+          It works up to a point (tile 256–512), but it is blind to structure: it cannot know that big tiles belong in a
+          corner, that monotone rows are safer, that some open boards are traps. Milestone 2 replaces the guess with a
+          function that discovered those patterns itself, over millions of self-played games.</p>
+        <p>Four words get thrown around in this project. Here is the exact role of each — this table is worth
+          memorizing before the meeting:</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>piece</th><th>what it is</th><th>its job</th><th>status</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Expectimax</strong></td><td>search (not RL)</td><td>picks the move by looking ahead in a max/chance tree</td><td><span class="statuschip chip-done">built</span></td></tr>
+            <tr><td><strong>RL</strong></td><td>the paradigm</td><td>"learn the value of things from experience, no teacher"</td><td><span class="statuschip chip-todo">M2 umbrella</span></td></tr>
+            <tr><td><strong>N-tuple network</strong></td><td>representation</td><td><em>where</em> the learned value lives (lookup tables)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+            <tr><td><strong>TD learning</strong></td><td>training algorithm</td><td><em>how</em> the value gets corrected, move by move</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+          </tbody>
+        </table></div>
+        <p>The anchor that keeps n-tuple and TD from blurring together: <strong>the n-tuple network is the student,
+          TD is the study method.</strong> One is the thing that holds the knowledge; the other is the procedure that
+          corrects it. Swap the n-tuple for a neural net — different student, same method. Swap TD for Monte Carlo —
+          different method, same student. They are different layers, so they never compete.</p>
+        <${Mermaid} caption="The final architecture. Solid arrows = play time. The learning loop (bottom) writes the tables that the search reads."
+          chart=${`graph TD
+  G[Game engine] -->|state| A[ExpectimaxAgent.choose_action]
+  A -->|best action| G
+  A --> M[max_node - agent maximizes]
+  M --> C[chance_node - spawn averaged]
+  C --> M
+  C --> L[leaf: evaluate board]
+  N[N-tuple network] -.->|M2 replaces heuristic| L
+  T[TD learning - self-play] -->|writes table entries| N`} />
+        <${Quiz} data=${QUIZ_DESTINATION} title="Checkpoint" />
+
+        <hr/>
+
+        <h2 id="s3">3 · Expectimax, understood properly</h2>
+        <p>We built this already, so this section is short on "how to implement" and long on "make sure you can defend
+          it," because the TA flagged it and the M2 report has to discuss it.</p>
+        <p>Before every real move, the agent simulates futures on <em>copies</em> of the board: "if I go left, then a
+          tile spawns somewhere, then my best reply is…" That mental simulation is a tree with two alternating kinds
+          of levels:</p>
+        <p><strong>MAX nodes</strong> are the agent's turns. It controls the choice, so it takes the <em>best</em> child —
+          the maximum. <strong>CHANCE nodes</strong> are the environment's turns. Nobody chooses: a 2 (90%) or a 4 (10%)
+          lands on a uniformly random empty cell. The honest summary of a dice roll is the
+          <em>probability-weighted average</em> of its outcomes — the expected value. Hence the name:
+          <strong>Expecti</strong>(mated chance) + <strong>max</strong>(imizing agent).</p>
+        <p>Why not a MIN node, like chess minimax? Because min models an <em>adversary</em> — something that sees your
+          position and picks the worst case for you on purpose. 2048's tile spawner does not look at anything; it rolls
+          dice. Model dice as malice and you get a paranoid agent that refuses good risky lines. See it happen with real
+          numbers:</p>
+        <${ExpectimaxExplorer} />
+        <p>Implementation notes on what is in <code>main</code> right now, because the report will need them:</p>
+        <p><strong>Depth counts max levels.</strong> <code>max_node</code> decrements depth on the max→chance step;
+          <code>chance_node</code> passes it through. Depth 2 means "my move, spawn, my move, spawn, evaluate."
+          <strong>Sampling:</strong> a full chance node has (empty cells × 2 values) children — up to 28 branches, which
+          explodes with depth. Ours samples at most 10 empty cells and reweights, trading a little accuracy in the
+          expectation for a lot of speed. <strong>Illegal moves</strong> are skipped via the <code>changed</code> flag,
+          and a board with no legal move is terminal and gets evaluated directly.</p>
+        <${Quiz} data=${QUIZ_EXPECTIMAX} title="Checkpoint" />
+
+        <hr/>
+
+        <h2 id="s4">4 · The afterstate</h2>
+        <p>This is the single most important concept in the M2 design, and the good news is that our code already
+          computes it — we just never gave it its name.</p>
+        <p>A 2048 move has three stages:</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>stage</th><th>board</th><th>who determines it</th></tr></thead>
+          <tbody>
+            <tr><td>1 · state <${TeX} tex="s"/></td><td>what the agent sees</td><td>history</td></tr>
+            <tr><td>2 · afterstate <${TeX} tex="s'"/></td><td>right after the slide/merge, before the random tile</td><td><strong>fully determined</strong> by (state, action)</td></tr>
+            <tr><td>3 · next state <${TeX} tex="s''"/></td><td>after the random tile lands</td><td>the dice</td></tr>
+          </tbody>
+        </table></div>
+        <p>Verified fact about our repo: <code>movement.py</code> returns stage 2. The spawn happens separately, inside
+          <code>Game.move</code>. So the grid that <code>max_node</code> hands to <code>chance_node</code> <em>is</em> the
+          afterstate. Watch the boundary between determinism and chance — play a move, and the game freezes at the
+          afterstate until you release the dice:</p>
+        <${Game2048} pauseSpawn=${true} caption="Afterstate mode: every move pauses at stage 2, before randomness" />
+        <p>Why learn <${TeX} tex="V(\\text{afterstate})"/> instead of <${TeX} tex="V(\\text{state})"/>? Because deciding
+          becomes trivial and cheap. To pick a move you compute, for each legal action:</p>
+        <${TeX} block tex="\\text{choose } \\arg\\max_{a\\,\\text{legal}} \\;\\big[\\, r(s,a) + V(\\text{afterstate}(s,a)) \\,\\big]" />
+        <p>Both terms are deterministic — no enumerating possible spawns at decision time, no transition probabilities
+          needed. Four afterstates, four lookups, done.</p>
+        <div class="callout warn">
+          <p class="ct">Common objection: "but then the agent ignores the randomness!"</p>
+          <p style=${{margin:0}}>It does not. It declines to predict the <em>specific</em> tile — but the <em>average effect</em>
+            of the randomness is baked into <${TeX} tex="V"/> automatically, because TD training watches millions of real
+            spawns and their consequences flow back into the value of the afterstates that preceded them. An afterstate
+            that tends to get wrecked by unlucky spawns simply ends up with a low learned value.
+            Not predicting the dice ≠ ignoring the dice.</p>
+        </div>
+
+        <hr/>
+
+        <h2 id="s5">5 · N-tuple network</h2>
+        <p>Despite the name, this is <strong>not a neural network</strong>. There are no layers, no neurons, no
+          activations, no batches, no forward pass. It is a set of <strong>lookup tables</strong>, and that simplicity
+          is a feature: it is fast enough to be called millions of times during training, and we can build it from
+          scratch in numpy — which is exactly what the TA asked for ("the learning must be yours").</p>
+        <h3>The problem this data structure solves</h3>
+        <p>We need a function that takes a board and returns a learned score — and it has to be absurdly fast, because
+          training will call it millions of times. The fastest lookup a computer can do is reading one slot of a plain
+          array: <code>table[i]</code>. But an array is indexed by a <em>number</em>, and what we have is a
+          <em>pattern of tiles</em>. So the entire design reduces to one question:
+          <strong>how do we turn a pattern of cells into a single number, so that every possible pattern gets its own
+          private slot in an array?</strong> Everything below is the answer, one step at a time.</p>
+
+        <h3>Step 1 · watch a few cells, not the whole board</h3>
+        <p>Scoring whole boards directly is hopeless — there are around 10¹⁶ distinct 2048 boards, more than we could
+          ever visit, let alone store a score for each. So we score <em>pieces</em> of the board instead. A
+          <strong>tuple</strong> is nothing more than a fixed set of positions we agree to watch together. For example,
+          "row 0" is the tuple made of the four cells (0,0), (0,1), (0,2), (0,3) — the top row. Four cells have few
+          enough possible contents to store them all, yet still capture real local structure: a monotone row, a big
+          tile sitting in a corner, a wall of mergeable pairs.</p>
+
+        <h3>Step 2 · turn each cell into a small number</h3>
+        <p>Now look at what can be <em>inside</em> one cell. In 2048 every tile is a power of two:
+          2 = 2¹, 4 = 2², 8 = 2³, … up to 32768 = 2¹⁵. So instead of recording a tile's face value, we record
+          <strong>which power of two it is</strong> — its exponent — and use 0 for an empty cell:</p>
+        <p style=${{textAlign:'center'}}><code>empty → 0 · 2 → 1 · 4 → 2 · 8 → 3 · 16 → 4 · … · 32768 → 15</code></p>
+        <p>Nothing deep happened here — we just relabeled the tiles by their rank. What we gained is that every cell
+          is now a number from 0 to 15: <strong>exactly sixteen possibilities per cell</strong>. Keep that "sixteen"
+          in mind; it is about to matter.</p>
+
+        <h3>Step 3 · pack the four numbers into one unique number</h3>
+        <p>Here is the step that looks like a trick the first time you see it — except you have been using it your
+          whole life. When you read the ordinary decimal number 4,387, you automatically understand it as</p>
+        <${TeX} block tex="4{,}387 \\;=\\; 7\\cdot 1 \\,+\\, 8\\cdot 10 \\,+\\, 3\\cdot 100 \\,+\\, 4\\cdot 1000" />
+        <p>Four digits, each with <em>ten</em> possible values, each position worth the next power of 10. That is all
+          positional notation is: a recipe for packing several small numbers into one big number so that no two
+          combinations ever collide. Our tuple is the exact same situation with one change — each of our "digits"
+          (a cell's exponent) has <em>sixteen</em> possible values, not ten. So positions are worth powers of 16
+          instead of powers of 10:</p>
+        <${TeX} block tex="\\text{index} \\;=\\; e_0 \\,+\\, e_1\\cdot 16 \\,+\\, e_2\\cdot 16^2 \\,+\\, e_3\\cdot 16^3" />
+        <p>Concretely: if row 0 holds the tiles [8, 4, 2, 2], the exponents are [3, 2, 1, 1], and</p>
+        <${TeX} block tex="\\text{index} \\;=\\; 3 \\,+\\, 2\\cdot 16 \\,+\\, 1\\cdot 256 \\,+\\, 1\\cdot 4096 \\;=\\; 4{,}387" />
+        <p>Two facts make this a <em>perfect</em> numbering. First, different patterns can never share an index —
+          change any one cell and you change one digit, which changes the number, for the same reason 4,387 ≠ 4,397.
+          Second, no numbers are wasted: the indices fill exactly the range 0 … 16⁴ − 1 = 65,535, one number for each
+          of the 65,536 possible contents of four cells.</p>
+
+        <h3>Step 4 · the table</h3>
+        <p>A pattern is now a number. So storing "a learned score for every possible pattern" needs nothing fancier
+          than <strong>an array with 65,536 slots</strong> — one slot per pattern, one array per tuple. Reading a
+          pattern's score = compute the index (three multiplications, three additions), read the slot. That cost is
+          why this structure survives millions of calls during training with no GPU.</p>
+        <p>Watch the whole path — cells → exponents → index → slot — live. Click the highlighted cells to change
+          their values, and notice that exactly one digit of the index changes each time:</p>
+        <${IndexAnatomy} />
+
+        <h3>Step 5 · a board's value is the sum of its tuples' scores</h3>
+        <p>One tuple sees only its own cells — it is a specialist with tunnel vision. To judge the whole board we use
+          <em>many</em> tuples (the demo below uses the 8 rows and columns; the full design adds nine 2×2 squares for
+          17). Each specialist looks up its score in its own table, and the board's value is simply the
+          <em>sum</em> of what they report:</p>
+        <${TeX} block tex="V(\\text{board}) \\;=\\; \\sum_i \\text{LUT}_i\\big[\\,\\text{idx}_i(\\text{board})\\,\\big]" />
+        <${NTupleDemo} />
+        <h3>What it is in code</h3>
+        <p>Strip away the terminology and the "network" is embarrassingly plain. This is the entire data structure:</p>
+        <div class="mono">the whole network in memory:
+
+tables ← one flat array of 65,536 numbers, per tuple   (17 tuples → 17 arrays)
+
+    tables[row0][0]      = value of seeing [empty, empty, empty, empty] there
+    tables[row0][4,387]  = value of seeing [8, 4, 2, 2] there
+    tables[row0][65,535] = value of seeing [32768, 32768, 32768, 32768] there
+
+all initialized to 0 — the agent starts with no opinions.
+training = editing numbers in these arrays. that is all "learning" means here.</div>
+        <h3>The symmetry trick</h3>
+        <p>2048's rules do not care about orientation: rotate the board and the game is the same game. So a pattern's
+          learned value should not depend on which way it happens to face — and we exploit that by having all 8
+          rotations/reflections consult the <em>same shared tables</em>:</p>
+        <${SymmetryDemo} />
+        <p>Concrete architecture options (this answers the TA's "network architecture" ask):</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>configuration</th><th>tables</th><th>entries</th><th>memory (float32)</th><th>verdict</th></tr></thead>
+          <tbody>
+            <tr><td>4 rows + 4 cols + 9 2×2 squares (17 tuples of 4)</td><td>17</td><td>~1.1 M</td><td>~4.5 MB</td><td>start here — trains in minutes</td></tr>
+            <tr><td>4 tuples of 6 cells (2×3 rectangles)</td><td>4</td><td>~67 M</td><td>~270 MB</td><td>the strong-paper setup; upgrade if time allows</td></tr>
+          </tbody>
+        </table></div>
+        <p>The module is small — the whole interface in pseudocode:</p>
+        <div class="mono">NTupleNetwork:
+    value(grid) → number
+        for each tuple, for each of the 8 symmetries of the grid:
+            read the entry at that tuple's index
+        return the sum of everything read
+
+    update(grid, delta)
+        add delta / (number of entries read)
+        to exactly the entries that value(grid) would read
+
+    save(path) / load(path)   — the tables are just arrays on disk</div>
+        <p>That <code>update</code> is why n-tuples pair so well with TD: because the value is a plain sum, "the gradient"
+          is trivial — correcting the value means adding <code>delta / n_tuples</code> to each entry that was consulted.
+          No backprop, no framework, no GPU.</p>
+        <${Quiz} data=${QUIZ_NTUPLE} title="Checkpoint" />
+
+        <hr/>
+
+        <h2 id="s6">6 · TD learning</h2>
+        <p>TD = temporal difference. The whole idea in one line: <strong>my estimate now should agree with
+          (the reward I just got + my estimate one step later); if it does not, nudge it toward the difference.</strong></p>
+        <p>The training loop (the <em>TD-afterstate</em> variant — the one that won in the published comparisons),
+          in pseudocode:</p>
+        <div class="mono">one training episode (self-play):
+
+reset the game
+while the game is not over:
+    1 · play greedily using the current value function
+        action    ← the legal move maximizing  reward + V(afterstate)
+        s_after   ← afterstate of that move          (deterministic)
+        apply the move, spawn the random tile        (board becomes s″)
+
+    2 · one-step lookahead from s″ gives the training target
+        r_next, s_after_next ← the best greedy move seen from s″
+
+    3 · temporal-difference error, then the nudge
+        delta ← (r_next + V(s_after_next)) − V(s_after)
+        update the network at s_after by  α · delta</div>
+        <p>Feel what the learning rate does. This demo trains a single value estimate toward a noisy target
+          (the noise stands in for "every game plays out differently"):</p>
+        <${TDDemo} />
+        <p>Practical numbers for our implementation: start <${TeX} tex="\\alpha"/> around 0.0025–0.01 (divided across
+          tuples inside <code>update</code>); if the training curve oscillates, lower it. Volume: tens to hundreds of
+          thousands of games — with numpy lookups this is minutes to a few hours on a laptop, no GPU. Log the average
+          score every 1,000 games and save checkpoints; <strong>the training curve climbing past the random baseline is
+          accomplishment #1 of the M2 report, with the plot as its evidence.</strong></p>
+        <p>Note what the training loop does <em>not</em> use: expectimax. Training plays cheap 1-ply greedy moves because
+          volume matters more than per-move quality while learning. The deep search comes back at play time, on top of
+          the finished tables.</p>
+
+        <hr/>
+
+        <h2 id="s7">7 · Integration</h2>
+        <p>After training, connecting the two halves of the project is literally one swap at the leaf of the search:</p>
+        <div class="mono">today (M1):
+    evaluate(board) → 100 × (number of empty cells) + (biggest tile)
+                      a hand-written guess
+
+after M2:
+    evaluate(board) → ask the trained n-tuple network for its value
+                      a learned judgment</div>
+        <p>Nothing else moves. <code>max_node</code> still maximizes, <code>chance_node</code> still averages — but the
+          leaves are now scored by a function that learned 2048 strategy from experience instead of guessing.
+          This is why the approved architecture is elegant: M1 and M2 dock without refactoring.</p>
+        <p>And the two halves multiply each other. Published results with this exact stack
+          (Szubert & Jaśkowski 2014; Matsuzaki 2021):</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>player</th><th>avg score</th><th>reaches 2048</th></tr></thead>
+          <tbody>
+            <tr><td>random agent (our baseline)</td><td>~1k</td><td>~0%</td></tr>
+            <tr><td>expectimax + hand heuristic (us, today)</td><td>reaches 256–512 tiles</td><td>low</td></tr>
+            <tr><td>trained n-tuple, greedy 1-ply, no search</td><td>~228k</td><td>~97%</td></tr>
+            <tr><td>same n-tuple + 3-ply expectimax</td><td>~407k</td><td>>97%, reaches 8192+</td></tr>
+          </tbody>
+        </table></div>
+        <p>Read the last two rows carefully: the learned value function does the heavy lifting, and the search
+          multiplies it (+80% score for depth 3 over depth 1). Comparing depths 1/2/3 with the same trained network is
+          <strong>accomplishment #2 of the report</strong> — one table, strong evidence, nearly free once the pieces exist.</p>
+
+        <hr/>
+
+        <h2 id="s8">8 · Who does what</h2>
+        <p>The M2 marking guide wants three key accomplishments, <em>each with proof</em> (screenshot, plot, code),
+          plus a recap, challenges (~½ page), and changes-from-proposal (~½ page). So the split below is designed
+          around a rule: <strong>every piece must produce evidence for the report, not just code.</strong></p>
+        <p>One structural note first, honestly: an earlier draft split for M2 had roles like hidden-layer design,
+          neuron counts, ReLU vs LeakyReLU, batch sizes. Those are deep-NN roles, and none of those concepts exist in
+          the n-tuple architecture we agreed on (§5 — no layers, no activations, no batches). The pieces below are the
+          real ones. The NN itself survives as the stretch ablation in piece 2/4: a small net trained on the same data,
+          reported honestly ("it scored below the n-tuple, as the literature predicted") — which is a legitimate,
+          citable result, not a failure.</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>piece</th><th>deliverable</th><th>proof for the report</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1 · N-tuple network</strong><br/><span class="faint">representation</span></td>
+              <td><code>NTupleNetwork</code>: tuples, base-16 indexing, 8 symmetries, <code>value()</code>, <code>update()</code>, save/load</td>
+              <td>unit test proving all 8 symmetries of a board give the same value; lookups/sec benchmark</td></tr>
+            <tr><td><strong>2 · TD training loop</strong><br/><span class="faint">learning</span></td>
+              <td>self-play greedy loop + TD-afterstate updates, logging, checkpoints, α tuning</td>
+              <td><strong>the training curve</strong> crossing the random-agent baseline</td></tr>
+            <tr><td><strong>3 · Integration + search</strong><br/><span class="faint">the strong player</span></td>
+              <td><code>evaluate()</code> → n-tuple; guard the grid contract; depth 1/2/3 comparison</td>
+              <td><strong>the score × depth table</strong> with the same trained network</td></tr>
+            <tr><td><strong>4 · Evaluation + demo + report</strong><br/><span class="faint">evidence</span></td>
+              <td>eval harness (random vs greedy-ntuple vs expectimax-ntuple over N games: avg score, max tile, win rate); matplotlib plots; pygame demo; report skeleton</td>
+              <td>the final comparison plots + the Aug 7 live demo</td></tr>
+          </tbody>
+        </table></div>
+        <p><strong>Dependencies and calendar</strong> (M2 due Jul 29 — about 2.5 weeks):</p>
+        <p><strong>Week 1 (Jul 13–19):</strong> pieces 1 and 2 move together — TD cannot run without the network,
+          so those two owners talk daily; it is the heaviest pair. Piece 4 can build the whole eval harness now, using
+          today's heuristic <code>evaluate()</code> as a stand-in. Piece 3 prepares the swap and the depth harness.
+          <strong>Week 2 (Jul 20–26):</strong> real training runs, integration switched on, depth table measured, plots made.
+          <strong>Final stretch (Jul 27–29):</strong> the report — three accomplishments with their evidence, challenges,
+          and the documented NN → n-tuple change citing the TA feedback and the literature.</p>
+        <div class="callout good">
+          <p class="ct">Decisions to close in the meeting</p>
+          <p style=${{margin:0}}>1 · Ratify the interface contract: <strong>agents take the raw numpy grid</strong>
+            (already fixed in <code>main.py</code>, Jul 9 — this is about keeping it). 2 · Confirm the four pieces and put names on them.
+            3 · Confirm the NN becomes a stretch ablation, and that the change gets written into the
+            changes-from-proposal section. 4 · Agree on the week-1 sync cadence for the piece 1+2 pair.</p>
+        </div>
+
+        <hr/>
+
+        <h2 id="s9">9 · Final check</h2>
+        <p>Three questions that cut across everything above. If you can answer these, you can defend the project
+          to the TA — or to each other.</p>
+        <${Quiz} data=${QUIZ_FINAL} title="Cumulative" />
+
+        <hr/>
+        <h2>Sources</h2>
+        <p class="muted" style=${{fontSize:'.92rem'}}>
+          Szubert & Jaśkowski (2014), <em>Temporal Difference Learning of N-Tuple Networks for the Game 2048</em>, IEEE CIG —
+          the canonical result our M2 follows (TD-afterstate n-tuple, ~97% win rate, no tree search).
+          Jaśkowski (2016), <em>Mastering 2048 with Delayed Temporal Coherence Learning…</em> (arXiv:1604.05085) —
+          afterstate framework and expectimax depth analysis. Matsuzaki (2021) — value-network comparison confirming
+          n-tuples beat deep nets on 2048 in most settings. Repo facts (module status, the grid-contract fix, timings)
+          verified directly against our <code>main</code> branch on Jul 9, 2026. TA feedback quoted from the graded proposal.
+          All figures on this page are computed live by the page itself; the published-results table is from the papers cited.</p>
+        <p class="faint">Built by João (with Charles) for CMPT 310 Group 1 · Summer 2026.</p>
+      </div>
+      <//>`;
+    }
+    createRoot(document.getElementById('root')).render(html`<${Guide} />`);
+  </script>
+</body>
+</html>
