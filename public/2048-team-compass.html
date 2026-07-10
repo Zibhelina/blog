@@ -377,6 +377,94 @@
       </div>`;
     }
 
+    /* ================= Depth-2 worked example ================= */
+    function DepthTwoWalkthrough(){
+      const [deep,setDeep]=useState(false);
+      const [guess,setGuess]=useState(null);
+      const root       =[[16,2,4,0],[32,16,8,2],[4,32,2,16],[16,2,16,2]];
+      const upAfter    =[[16,2,4,2],[32,16,8,16],[4,32,2,2],[16,2,16,0]];
+      const rightAfter =[[0,16,2,4],[32,16,8,2],[4,32,2,16],[16,2,16,2]];
+      const rightSpawn =[[2,16,2,4],[32,16,8,2],[4,32,2,16],[16,2,16,2]];
+      const rightThenUp=[[2,32,2,4],[32,32,8,2],[4,2,2,16],[16,0,16,2]];
+      const Mini=({g,hi,size})=>{ const s=size||120; return html`<div style=${{display:'grid',
+        gridTemplateColumns:'repeat(4,1fr)',gap:3,background:'var(--surface-2)',padding:4,borderRadius:6,
+        width:s,margin:'0 auto',flex:'0 0 auto'}}>
+        ${g.flatMap((row,r)=>row.map((v,c)=>html`<div key=${r+'-'+c} style=${{...tileStyle(v),aspectRatio:'1',
+          display:'flex',alignItems:'center',justifyContent:'center',borderRadius:4,fontWeight:600,
+          fontSize:(s/13)+'px',outline:hi&&hi[0]===r&&hi[1]===c?'2px solid var(--accent)':'none'}}>${v||''}</div>`))}
+      </div>`; };
+      const Arrow=()=>html`<div style=${{alignSelf:'center',color:'var(--text-faint)',fontSize:'1.4rem',padding:'0 2px'}}>→</div>`;
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 16px'}}>Worked example · one real board, searched two moves deep</p>
+
+        <${Mini} g=${root} hi=${[0,3]} size=${156} />
+        <p class="faint" style=${{textAlign:'center',margin:'8px 0 0'}}>The position: one empty cell (top-right, highlighted).
+          Only two moves change anything — <strong>up</strong> and <strong>right</strong>.</p>
+
+        <p style=${{marginTop:18}}>So that every number below is checkable by hand, we score a finished board with a deliberately
+          simple stand-in for the agent's hand-written <code>evaluate()</code>:</p>
+        <${TeX} block tex=${'\\text{evaluate(board)} = 3\\cdot(\\#\\,\\text{empty cells}) + 2\\cdot(\\#\\,\\text{adjacent equal pairs})'} />
+        <p class="faint" style=${{marginTop:'-4px'}}>The real heuristic is richer, but the tree is identical: swap in any scorer and the steps don't change.</p>
+
+        <p style=${{fontWeight:600,margin:'1.5em 0 .3em'}}>Shallow look — depth 1</p>
+        <p>Depth 1 means: make the move, let one tile spawn, score the board. No reply. Each move here leaves exactly one
+          empty cell, so its chance node averages just two outcomes — a 2 (probability 0.9) or a 4 (probability 0.1) in that cell.</p>
+        <div style=${{display:'flex',justifyContent:'center',gap:26,flexWrap:'wrap',margin:'14px 0'}}>
+          <div style=${{textAlign:'center'}}>
+            <${Mini} g=${upAfter} hi=${[3,3]} size=${132} />
+            <p class="faint" style=${{margin:'6px 0 0'}}>after <strong>up</strong> · reward 0<br/>E = .9·4 + .1·2 = <strong style=${{color:'var(--text)'}}>3.8</strong></p>
+          </div>
+          <div style=${{textAlign:'center'}}>
+            <${Mini} g=${rightAfter} hi=${[0,0]} size=${132} />
+            <p class="faint" style=${{margin:'6px 0 0'}}>after <strong>right</strong> · reward 0<br/>E = .9·2 + .1·2 = <strong style=${{color:'var(--text)'}}>2.0</strong></p>
+          </div>
+        </div>
+        <p>A one-move-deep agent picks <strong>up</strong> — 3.8 beats 2.0. Up packs the board a little tighter and the
+          shallow score can only see that far. Commit to a prediction before we search one move further:</p>
+        <p class="q" style=${{textAlign:'center'}}>Does looking one move deeper change the pick?</p>
+        <div style=${{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+          <button class="btn btn-ghost" disabled=${guess!==null} onClick=${()=>{setGuess('same');setDeep(true);}}>No — still up</button>
+          <button class="btn btn-ghost" disabled=${guess!==null} onClick=${()=>{setGuess('flip');setDeep(true);}}>Yes — it flips to right</button>
+        </div>
+
+        ${deep && html`<div style=${{marginTop:20}}>
+          <div class=${'feedback '+(guess==='flip'?'good':'bad')} style=${{marginBottom:16}}>
+            <strong>${guess==='flip'?'Right — it flips to right.':'It flips: depth 2 picks right.'}</strong>${" "}
+            Depth 1 was fooled. Watch what the <em>right</em> move sets up.
+          </div>
+
+          <p style=${{fontWeight:600,margin:'0 0 .3em'}}>Deeper look — depth 2</p>
+          <p>Depth 2 adds one more agent move before scoring: move, spawn, <em>move again</em>, spawn, score. Follow the
+            right branch. After <strong>right</strong>, a tile fills the empty corner — say a 2 — and now the agent gets a
+            second move. Its best reply is <strong>up</strong>, which merges the two 16s stacked at the top of the second
+            column for a <strong> +32</strong> reward the shallow search never reached:</p>
+          <div style=${{display:'flex',justifyContent:'center',alignItems:'stretch',gap:6,flexWrap:'wrap',margin:'14px 0'}}>
+            <div style=${{textAlign:'center'}}><${Mini} g=${rightAfter} hi=${[0,0]} size=${116} /><p class="faint" style=${{margin:'5px 0 0'}}>right afterstate</p></div>
+            <${Arrow} />
+            <div style=${{textAlign:'center'}}><${Mini} g=${rightSpawn} hi=${[0,0]} size=${116} /><p class="faint" style=${{margin:'5px 0 0'}}>a 2 spawns (p .9)</p></div>
+            <${Arrow} />
+            <div style=${{textAlign:'center'}}><${Mini} g=${rightThenUp} hi=${[3,1]} size=${116} /><p class="faint" style=${{margin:'5px 0 0'}}>then <strong>up</strong> → +32</p></div>
+          </div>
+          <p>Score that last board's two spawn outcomes and fold the +32 reward back in:</p>
+          <${TeX} block tex=${'V(\\text{right, then up}) = 32 + (0.9\\cdot 8 + 0.1\\cdot 6) = 32 + 7.8 = 39.8'} />
+          <p>The 4-in-the-corner case (probability 0.1) leads to the same +32 up-move and the same 39.8, so the right branch
+            is worth <strong>39.8</strong> either way. The up branch, searched to the same depth, only reaches small merges
+            and comes out at <strong>6.02</strong>:</p>
+          <div style=${{overflowX:'auto'}}><table>
+            <thead><tr><th>root move</th><th>depth 1 value</th><th>depth 2 value</th></tr></thead>
+            <tbody>
+              <tr><td><strong>up</strong></td><td>3.8 · shallow winner</td><td>6.02</td></tr>
+              <tr><td><strong>right</strong></td><td>2.0</td><td><strong style=${{color:'var(--good)'}}>39.8 · deep winner</strong></td></tr>
+            </tbody>
+          </table></div>
+          <p>That is the whole case for depth in one board. The tidy-looking move was a trap; the winning move only looks
+            good once you see the merge waiting one step behind it. This is exactly why the papers train with a cheap
+            1-ply policy but switch to 3-ply expectimax at play time for roughly +80% score — each extra ply uncovers
+            payoffs the shallower search is blind to.</p>
+        </div>`}
+      </div>`;
+    }
+
     /* ================= N-tuple lookup demo ================= */
     function NTupleDemo(){
       const board=[[8,4,2,2],[16,8,4,0],[2,64,2,0],[0,0,4,2]];
@@ -940,6 +1028,10 @@ score: 20 → 24        (reward = +4)`,
           explodes with depth. Ours samples at most 10 empty cells and reweights, trading a little accuracy in the
           expectation for a lot of speed. <strong>Illegal moves</strong> are skipped via the <code>changed</code> flag,
           and a board with no legal move is terminal and gets evaluated directly.</p>
+        <p>The one-move picture above is enough to define the mechanics, but it hides why depth is worth paying for: at
+          depth 1 the agent judges a move only by the board it lands on, so a move whose real payoff is a merge one step
+          later looks worthless. Here is a real position where searching a second move deep <em>reverses</em> the choice.</p>
+        <${DepthTwoWalkthrough} />
         <${Quiz} data=${QUIZ_EXPECTIMAX} title="Checkpoint" />
 
         <hr/>
