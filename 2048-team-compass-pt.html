@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>2048 RL — Bússola do Time</title>
+<link rel="stylesheet" href="https://esm.sh/katex@0.16.11/dist/katex.min.css">
+<style>
+  :root{
+    --bg:#fffdfa; --surface:#f7f6f3; --surface-2:#efeee9; --border:#e7e5df;
+    --text:#2e2c28; --text-muted:#6b6862; --text-faint:#9a958c;
+    --accent:#2d6df6; --accent-soft:rgba(45,109,246,.12);
+    --good:#1f9d57; --good-soft:rgba(31,157,87,.12);
+    --bad:#d4453b;  --bad-soft:rgba(212,69,59,.10);
+    --warn:#b7791f; --warn-soft:rgba(183,121,31,.10);
+    --radius:10px; --maxw:720px;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    --mono:ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#1a1917; --surface:#222120; --surface-2:#2b2a27; --border:#34322e;
+      --text:#e9e6df; --text-muted:#a7a39b; --text-faint:#76726b;
+      --accent:#6ea0ff; --accent-soft:rgba(110,160,255,.16);
+      --good:#46c07e; --good-soft:rgba(70,192,126,.16);
+      --bad:#ef6a60;  --bad-soft:rgba(239,106,96,.16);
+      --warn:#d9a441; --warn-soft:rgba(217,164,65,.12);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    font-size:18px;line-height:1.7;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:80px 24px 200px}
+  h1{font-size:2.3rem;line-height:1.15;letter-spacing:-.02em;margin:0 0 .6em}
+  h2{font-size:1.5rem;line-height:1.25;letter-spacing:-.01em;margin:2.8em 0 .5em}
+  h3{font-size:1.13rem;margin:1.8em 0 .4em}
+  p{margin:0 0 1.1em}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-soft)}
+  .lead{font-size:1.16rem;line-height:1.6;color:var(--text);margin:0 0 1.7em}
+  .q{font-weight:500;font-size:1.04rem;line-height:1.5;margin:0 0 10px}
+  .muted{color:var(--text-muted)} .faint{color:var(--text-faint);font-size:.85rem}
+  .kicker{font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--text-faint);margin:0 0 .5em}
+  hr{border:none;border-top:1px solid var(--border);margin:3.2em 0}
+  code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:.1em .35em;border-radius:4px}
+  img{max-width:100%;border-radius:var(--radius);display:block;margin:1.4em auto}
+  figcaption{text-align:center;color:var(--text-faint);font-size:.85rem;margin-top:.4em}
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);width:0;z-index:50;transition:width .12s ease}
+  .card,.fig{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin:1.7em 0}
+  button{font:inherit;cursor:pointer}
+  .btn{padding:7px 14px;border-radius:7px;border:none;background:var(--accent);color:#fff;
+    font-size:.92rem;font-weight:500;transition:filter .15s,transform .05s}
+  .btn:hover{filter:brightness(1.07)} .btn:active{transform:translateY(1px)}
+  .btn:disabled{background:var(--surface-2);color:var(--text-faint);cursor:not-allowed}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .opt{display:block;width:100%;text-align:left;margin:8px 0;padding:12px 14px;border-radius:8px;
+    border:1px solid var(--border);background:var(--bg);color:var(--text);transition:background .15s,border-color .15s}
+  .opt:hover:not(:disabled){border-color:var(--accent)}
+  .opt.correct{background:var(--good-soft);border-color:var(--good)}
+  .opt.wrong{background:var(--bad-soft);border-color:var(--bad)}
+  .opt:disabled{cursor:default}
+  .feedback{margin-top:12px;padding:12px 14px;border-radius:8px;background:var(--surface-2);
+    border:1px solid var(--border);font-size:.95rem;animation:fade .25s ease}
+  .feedback.good{background:var(--good-soft);border-color:transparent}
+  .feedback.bad{background:var(--bad-soft);border-color:transparent}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  input.txt{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);
+    background:var(--bg);color:var(--text);font:inherit}
+  input.txt:focus,.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  details{margin:1.3em 0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:0 16px}
+  details>summary{cursor:pointer;padding:14px 0;font-weight:500;color:var(--accent);list-style:none}
+  details>summary::-webkit-details-marker{display:none}
+  details>summary::before{content:'▸ ';color:var(--text-faint)}
+  details[open]>summary::before{content:'▾ '}
+  details[open]>summary{border-bottom:1px solid var(--border);margin-bottom:12px}
+  .mono{font-family:var(--mono);font-size:.82rem;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--border);line-height:1.55}
+  table{width:100%;border-collapse:collapse;margin:1.4em 0;font-size:.93rem}
+  th{text-align:left;font-weight:600;color:var(--text-muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;
+    padding:8px 10px;border-bottom:1px solid var(--border)}
+  td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .statuschip{display:inline-block;font-size:.74rem;font-weight:600;padding:2px 9px;border-radius:999px}
+  .chip-done{background:var(--good-soft);color:var(--good)}
+  .chip-todo{background:var(--accent-soft);color:var(--accent)}
+  .chip-bug{background:var(--bad-soft);color:var(--bad)}
+  .callout{border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin:1.6em 0;font-size:.96rem}
+  .callout.warn{background:var(--warn-soft)}
+  .callout.good{background:var(--good-soft)}
+  .callout .ct{font-weight:600;margin:0 0 6px;font-size:.9rem}
+  .grid2048{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:var(--surface-2);
+    padding:8px;border-radius:10px;max-width:320px;margin:0 auto}
+  .tile{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:7px;
+    font-weight:600;font-size:1.15rem;background:var(--bg);color:var(--text);transition:background .12s}
+  .toc{list-style:none;padding:0;margin:1.2em 0}
+  .toc li{padding:7px 0;border-bottom:1px solid var(--border)}
+  .toc li:last-child{border-bottom:none}
+  .toc .n{color:var(--text-faint);font-variant-numeric:tabular-nums;margin-right:10px;font-size:.85rem}
+  .metastrip{display:flex;flex-wrap:wrap;gap:8px 20px;margin:1.4em 0 0;padding:12px 16px;border:1px solid var(--border);
+    border-radius:var(--radius);background:var(--surface);font-size:.85rem;color:var(--text-muted)}
+  /* Sidebar content navigation (Notion-style, scroll-spy) */
+  .sidenav{position:fixed;top:0;left:0;bottom:0;width:250px;padding:28px 14px 28px 20px;overflow-y:auto;
+    border-right:1px solid var(--border);background:var(--surface);z-index:40;
+    scrollbar-width:thin}
+  .sidenav .snav-title{font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--text-faint);margin:0 0 12px;padding:0 8px}
+  .sidenav a{display:flex;align-items:baseline;gap:8px;padding:6px 8px;border-radius:6px;border:none;
+    font-size:.84rem;line-height:1.35;color:var(--text-muted);text-decoration:none;transition:background .12s,color .12s}
+  .sidenav a:hover{background:var(--surface-2);color:var(--text)}
+  .sidenav a.active{background:var(--accent-soft);color:var(--accent);font-weight:500}
+  .sidenav .sn{font-size:.72rem;color:var(--text-faint);font-variant-numeric:tabular-nums;min-width:16px}
+  .sidenav a.active .sn{color:var(--accent)}
+  @media (min-width:1100px){ .wrap{margin-left:calc(250px + (100vw - 250px - var(--maxw))/2)} }
+  @media (max-width:1099px){ .sidenav{display:none} }
+</style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+  <div id="root"></div>
+  <script>
+    addEventListener('scroll',()=>{const h=document.documentElement;
+      const p=h.scrollTop/(h.scrollHeight-h.clientHeight||1)*100;
+      document.getElementById('progress').style.width=p+'%';});
+  </script>
+  <script type="module">
+    import React from "https://esm.sh/react@18.3.1";
+    import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
+    import htm from "https://esm.sh/htm@3.1.1";
+    import katex from "https://esm.sh/katex@0.16.11";
+    import mermaid from "https://esm.sh/mermaid@11.4.1";
+    const html = htm.bind(React.createElement);
+    const { useState, useRef, useEffect, useCallback } = React;
+
+    function TeX({ tex, block }){
+      const ref = useRef(null);
+      useEffect(()=>{ if(ref.current) katex.render(tex, ref.current,
+        { displayMode: !!block, throwOnError: false }); }, [tex, block]);
+      return html`<${block ? 'div' : 'span'} ref=${ref} />`;
+    }
+
+    function Mermaid({ chart, caption }){
+      const ref = useRef(null);
+      useEffect(()=>{
+        let alive = true;
+        const css = getComputedStyle(document.documentElement);
+        const v = n => css.getPropertyValue(n).trim();
+        mermaid.initialize({
+          startOnLoad:false, securityLevel:'loose', theme:'base', fontFamily:v('--sans'),
+          themeVariables:{
+            background:v('--bg'), primaryColor:v('--surface'), secondaryColor:v('--surface-2'),
+            tertiaryColor:v('--surface-2'), primaryBorderColor:v('--border'),
+            lineColor:v('--text-faint'), primaryTextColor:v('--text'), textColor:v('--text'), fontSize:'14px',
+          },
+        });
+        const id = 'mmd-'+Math.random().toString(36).slice(2);
+        mermaid.render(id, chart).then(({svg})=>{ if(alive&&ref.current) ref.current.innerHTML=svg; })
+          .catch(err=>{ if(alive&&ref.current) ref.current.innerHTML =
+            '<pre class="mono" style="color:var(--bad)">Mermaid error: '+err.message+'</pre>'; });
+        return ()=>{ alive=false; };
+      }, [chart]);
+      return html`<figure class="fig" style=${{textAlign:'center',overflowX:'auto',margin:'1.7em 0'}}>
+        <div ref=${ref} />
+        ${caption && html`<figcaption>${caption}</figcaption>`}
+      </figure>`;
+    }
+
+    function Quiz({ data, title }){
+      const [i,setI]=useState(0), [picked,setPicked]=useState(null);
+      const item=data[i];
+      const pick=idx=>{ if(picked===null) setPicked(idx); };
+      const next=()=>{ setPicked(null); setI((i+1)%data.length); };
+      const opt=item.options[picked]||{};
+      return html`<div class="card">
+        ${title && html`<p class="kicker" style=${{marginBottom:10}}>${title}</p>`}
+        <p class="faint" style=${{margin:'0 0 6px'}}>Pergunta ${i+1} de ${data.length}</p>
+        <p class="q" style=${{marginTop:0}}>${item.q}</p>
+        ${item.options.map((o,idx)=>{
+          const reveal=picked!==null;
+          const cls='opt'+(reveal&&o.correct?' correct':reveal&&idx===picked&&!o.correct?' wrong':'');
+          return html`<button key=${idx} class=${cls} disabled=${reveal} onClick=${()=>pick(idx)}>${o.text}</button>`;
+        })}
+        ${picked!==null && html`<div class=${'feedback '+(opt.correct?'good':'bad')}>
+          <strong>${opt.correct?'Correto. ':'Não é bem isso. '}</strong>${opt.feedback}
+          <div style=${{marginTop:10}}>
+            <button class="btn" onClick=${next}>${i+1<data.length?'Próxima':'Recomeçar'}</button>
+          </div>
+        </div>`}
+      </div>`;
+    }
+
+    /* ================= 2048 game engine (mirrors game/movement.py semantics) ================= */
+
+    function slideMergeRowLeft(row){
+      const nz = row.filter(x=>x!==0);
+      const out=[], merged=[];
+      let i=0;
+      while(i<nz.length){
+        if(i+1<nz.length && nz[i]===nz[i+1]){ out.push(nz[i]*2); merged.push(nz[i]*2); i+=2; }
+        else { out.push(nz[i]); i+=1; }
+      }
+      while(out.length<4) out.push(0);
+      return [out, merged];
+    }
+    const T = g => g[0].map((_,c)=>g.map(r=>r[c]));       // transpose
+    const rev = g => g.map(r=>[...r].reverse());
+    function applyMove(grid, dir){
+      let g = grid.map(r=>[...r]);
+      if(dir==='up') g = T(g);
+      if(dir==='down') g = T(g);
+      if(dir==='right' || dir==='down') g = rev(g);
+      const merged=[];
+      g = g.map(row=>{ const [nr,m]=slideMergeRowLeft(row); merged.push(...m); return nr; });
+      if(dir==='right' || dir==='down') g = rev(g);
+      if(dir==='up' || dir==='down') g = T(g);
+      const changed = JSON.stringify(g)!==JSON.stringify(grid);
+      return [g, merged, changed];
+    }
+    function emptyCells(g){ const out=[]; for(let r=0;r<4;r++)for(let c=0;c<4;c++) if(g[r][c]===0) out.push([r,c]); return out; }
+    function spawnTile(g){
+      const cells=emptyCells(g); if(!cells.length) return [g,null];
+      const [r,c]=cells[Math.floor(Math.random()*cells.length)];
+      const v = Math.random()<0.9 ? 2 : 4;
+      const ng=g.map(row=>[...row]); ng[r][c]=v;
+      return [ng,{r,c,v}];
+    }
+    function gameOver(g){ return !['left','right','up','down'].some(d=>applyMove(g,d)[2]); }
+
+    const TILE_BG = {0:'var(--bg)',2:'#ece6da',4:'#e8ddc4',8:'#e8b98a',16:'#e59f6d',
+      32:'#e28560',64:'#df6a4a',128:'#e3c96a',256:'#e2c452',512:'#dfbe3d',1024:'#dcb928',2048:'#d9b411'};
+    function tileStyle(v){
+      if(!v) return {background:'var(--surface)',color:'var(--text-faint)'};
+      return {background:TILE_BG[v]||'#3c3a33', color: v<=4 ? '#5b5648' : '#fff',
+        fontSize: v>=1024 ? '.9rem' : v>=128 ? '1rem' : '1.15rem'};
+    }
+    function BoardView({ grid, flash }){
+      return html`<div class="grid2048">
+        ${grid.flatMap((row,r)=>row.map((v,c)=>{
+          const hot = flash && flash.r===r && flash.c===c;
+          return html`<div key=${r+'-'+c} class="tile"
+            style=${{...tileStyle(v), outline: hot?'2px solid var(--accent)':'none'}}>${v||''}</div>`;
+        }))}
+      </div>`;
+    }
+
+    /* Playable 2048, with optional pause-at-afterstate mode */
+    function Game2048({ pauseSpawn, caption }){
+      const fresh = ()=>{ let g=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+        [g]=spawnTile(g); [g]=spawnTile(g); return g; };
+      const [grid,setGrid]=useState(fresh);
+      const [score,setScore]=useState(0);
+      const [phase,setPhase]=useState('play');   // 'play' | 'afterstate'
+      const [lastReward,setLastReward]=useState(null);
+      const [flash,setFlash]=useState(null);
+      const [msg,setMsg]=useState('');
+      const doMove=useCallback(dir=>{
+        if(phase!=='play') return;
+        const [g,merged,changed]=applyMove(grid,dir);
+        if(!changed){ setMsg('Jogada ilegal (nada mudou) → changed=False, sem spawn.'); return; }
+        const reward=merged.reduce((a,b)=>a+b,0);
+        setLastReward(reward); setScore(s=>s+reward); setMsg('');
+        if(pauseSpawn){ setGrid(g); setPhase('afterstate'); setFlash(null); }
+        else { const [g2,sp]=spawnTile(g); setGrid(g2); setFlash(sp);
+          if(gameOver(g2)) setMsg('Fim de jogo: nenhuma jogada muda o tabuleiro.'); }
+      },[grid,phase,pauseSpawn]);
+      const doSpawn=()=>{ const [g2,sp]=spawnTile(grid); setGrid(g2); setFlash(sp); setPhase('play');
+        if(gameOver(g2)) setMsg('Fim de jogo: nenhuma jogada muda o tabuleiro.'); };
+      const reset=()=>{ setGrid(fresh()); setScore(0); setPhase('play'); setLastReward(null); setFlash(null); setMsg(''); };
+      const onKey=e=>{
+        const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[e.key];
+        if(m){ e.preventDefault(); doMove(m); }
+      };
+      const empt = emptyCells(grid).length;
+      return html`<div class="fig" tabIndex="0" onKeyDown=${onKey} style=${{outline:'none'}}>
+        ${caption && html`<p class="faint" style=${{textAlign:'center',margin:'0 0 12px'}}>${caption}</p>`}
+        <${BoardView} grid=${grid} flash=${flash} />
+        <div style=${{display:'flex',justifyContent:'center',gap:16,marginTop:12,fontSize:'.9rem'}}>
+          <span>placar <strong>${score}</strong></span>
+          ${lastReward!==null && html`<span class="muted">último reward <strong style=${{color:'var(--good)'}}>+${lastReward}</strong></span>`}
+          <span class="muted">${empt} vazias</span>
+        </div>
+        ${phase==='afterstate' && html`<div class="feedback" style=${{textAlign:'center'}}>
+          <strong>Isto é o afterstate.</strong> O slide e os merges já aconteceram, é determinístico, ainda sem peça aleatória.
+          O reward (+${lastReward}) já é conhecido. Agora o ambiente age:
+          um 2 (90%) ou um 4 (10%) cai numa das ${empt} células vazias.
+          <div style=${{marginTop:10}}><button class="btn" onClick=${doSpawn}>Gerar peça aleatória →</button></div>
+        </div>`}
+        ${msg && html`<p class="faint" style=${{textAlign:'center',marginTop:8}}>${msg}</p>`}
+        <div style=${{display:'flex',justifyContent:'center',gap:8,marginTop:12,flexWrap:'wrap'}}>
+          ${['left','up','down','right'].map(d=>html`<button key=${d} class="btn btn-ghost"
+            disabled=${phase!=='play'} onClick=${()=>doMove(d)}>${{left:'← esquerda',up:'↑ cima',down:'↓ baixo',right:'→ direita'}[d]}</button>`)}
+          <button class="btn btn-ghost" onClick=${reset}>reiniciar</button>
+        </div>
+        <p class="faint" style=${{textAlign:'center',marginTop:8}}>Clique no tabuleiro uma vez e as setas do teclado também funcionam.
+          Mesma semântica de slide/merge do nosso <code>game/movement.py</code> (um merge por peça por jogada).</p>
+      </div>`;
+    }
+
+    /* ================= Move-flow stepper (code-level trace of Game.move) ================= */
+    function Stepper({ steps, title }){
+      const [i,setI]=useState(0), [predicting,setPredicting]=useState(true);
+      const last=i>=steps.length-1;
+      return html`<div class="card">
+        ${title && html`<p class="kicker" style=${{marginBottom:8}}>${title}</p>`}
+        <p class="faint" style=${{margin:'0 0 8px'}}>Passo ${i+1} de ${steps.length}</p>
+        <div class="mono">${steps[i].state}</div>
+        <p class="muted" style=${{marginTop:8,fontSize:'.95rem'}}>${steps[i].note}</p>
+        <div style=${{display:'flex',gap:8}}>
+          ${i>0 && html`<button class="btn btn-ghost" onClick=${()=>{setI(i-1);setPredicting(false);}}>← Voltar</button>`}
+          ${!last && (predicting
+            ? html`<button class="btn" onClick=${()=>setPredicting(false)}>Preveja o que vem a seguir, depois revele</button>`
+            : html`<button class="btn btn-ghost" onClick=${()=>{setI(i+1);setPredicting(true);}}>Avançar →</button>`)}
+        </div>
+      </div>`;
+    }
+
+    /* ================= Expectimax tree explorer ================= */
+    function ExpectimaxExplorer(){
+      // Toy tree, depth 1. Numbers chosen so max-of-best-case and min-node both pick differently.
+      // LEFT: reward 4; chance: 90% → leaf V=10, 10% → leaf V=0.   E = 4 + (0.9·10 + 0.1·0) = 13
+      // UP:   reward 0; chance: 90% → leaf V=8,  10% → leaf V=8.   E = 0 + 8 = 8
+      const [picked,setPicked]=useState(null);
+      const [showMin,setShowMin]=useState(false);
+      const Node=({label,sub,color})=>html`<div style=${{border:'1px solid var(--border)',borderRadius:8,
+        padding:'8px 12px',background:color||'var(--bg)',textAlign:'center',fontSize:'.86rem',minWidth:86}}>
+        <div style=${{fontWeight:600}}>${label}</div>
+        ${sub && html`<div class="faint">${sub}</div>`}
+      </div>`;
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 14px'}}>Interativo · uma decisão expectimax de 1 nível com números reais</p>
+        <div style=${{display:'flex',justifyContent:'center'}}>
+          <${Node} label="nó MAX" sub="o agente escolhe a jogada" color="var(--accent-soft)" />
+        </div>
+        <div style=${{display:'flex',justifyContent:'space-around',margin:'14px 0 0',gap:12,flexWrap:'wrap'}}>
+          <div style=${{textAlign:'center',flex:1,minWidth:220}}>
+            <div class="faint" style=${{marginBottom:6}}>ação = esquerda · reward imediato <strong>+4</strong></div>
+            <${Node} label="nó CHANCE" sub="spawn da peça" />
+            <div style=${{display:'flex',justifyContent:'center',gap:10,marginTop:10}}>
+              <${Node} label="V = 10" sub="p = 0,9 (peça 2)" />
+              <${Node} label="V = 0" sub="p = 0,1 (peça 4)" />
+            </div>
+          </div>
+          <div style=${{textAlign:'center',flex:1,minWidth:220}}>
+            <div class="faint" style=${{marginBottom:6}}>ação = cima · reward imediato <strong>+0</strong></div>
+            <${Node} label="nó CHANCE" sub="spawn da peça" />
+            <div style=${{display:'flex',justifyContent:'center',gap:10,marginTop:10}}>
+              <${Node} label="V = 8" sub="p = 0,9 (peça 2)" />
+              <${Node} label="V = 8" sub="p = 0,1 (peça 4)" />
+            </div>
+          </div>
+        </div>
+        <div style=${{marginTop:18,textAlign:'center'}}>
+          <p class="q">Qual jogada o expectimax escolhe? Decida antes de revelar.</p>
+          <div style=${{display:'flex',gap:8,justifyContent:'center'}}>
+            <button class="btn btn-ghost" disabled=${picked!==null} onClick=${()=>setPicked('left')}>esquerda</button>
+            <button class="btn btn-ghost" disabled=${picked!==null} onClick=${()=>setPicked('up')}>cima</button>
+          </div>
+        </div>
+        ${picked!==null && html`<div class=${'feedback '+(picked==='left'?'good':'bad')}>
+          <strong>${picked==='left' ? 'Correto: esquerda.' : 'Ele escolhe esquerda.'}</strong>
+          <div style=${{margin:'10px 0'}}>
+            <${TeX} block tex=${'E[\\text{esquerda}] = 4 + (0.9 \\cdot 10 + 0.1 \\cdot 0) = 4 + 9 = 13'} />
+            <${TeX} block tex=${'E[\\text{cima}] = 0 + (0.9 \\cdot 8 + 0.1 \\cdot 8) = 0 + 8 = 8'} />
+          </div>
+          O nó chance tira a <em>média ponderada pela probabilidade</em> dos filhos, e o nó max pega a melhor ação.
+          Esquerda carrega 10% de risco de um tabuleiro ruim (V=0), mas na média é claramente melhor.
+          <div style=${{marginTop:10}}>
+            ${!showMin
+              ? html`<button class="btn btn-ghost" onClick=${()=>setShowMin(true)}>O que um nó MIN teria feito?</button>`
+              : html`<div style=${{marginTop:8}}>
+                  Um nó min assume que o ambiente joga o <em>pior caso de propósito</em>:
+                  min(esquerda) = 4 + 0 = 4, min(cima) = 0 + 8 = 8 → ele escolheria <strong>cima</strong>, fugindo de um risco que
+                  só acontece 10% das vezes. É por isso que o 2048 usa um nó chance: a peça aleatória é um lance de dado,
+                  não um adversário. Esse é exatamente o ponto que o TA marcou na nossa proposta.
+                </div>`}
+          </div>
+        </div>`}
+      </div>`;
+    }
+
+    /* ================= Depth-2 worked example ================= */
+    function DepthTwoWalkthrough(){
+      const [deep,setDeep]=useState(false);
+      const [guess,setGuess]=useState(null);
+      const root       =[[16,2,4,0],[32,16,8,2],[4,32,2,16],[16,2,16,2]];
+      const upAfter    =[[16,2,4,2],[32,16,8,16],[4,32,2,2],[16,2,16,0]];
+      const rightAfter =[[0,16,2,4],[32,16,8,2],[4,32,2,16],[16,2,16,2]];
+      const rightSpawn =[[2,16,2,4],[32,16,8,2],[4,32,2,16],[16,2,16,2]];
+      const rightThenUp=[[2,32,2,4],[32,32,8,2],[4,2,2,16],[16,0,16,2]];
+      const Mini=({g,hi,size})=>{ const s=size||120; return html`<div style=${{display:'grid',
+        gridTemplateColumns:'repeat(4,1fr)',gap:3,background:'var(--surface-2)',padding:4,borderRadius:6,
+        width:s,margin:'0 auto',flex:'0 0 auto'}}>
+        ${g.flatMap((row,r)=>row.map((v,c)=>html`<div key=${r+'-'+c} style=${{...tileStyle(v),aspectRatio:'1',
+          display:'flex',alignItems:'center',justifyContent:'center',borderRadius:4,fontWeight:600,
+          fontSize:(s/13)+'px',outline:hi&&hi[0]===r&&hi[1]===c?'2px solid var(--accent)':'none'}}>${v||''}</div>`))}
+      </div>`; };
+      const Arrow=()=>html`<div style=${{alignSelf:'center',color:'var(--text-faint)',fontSize:'1.4rem',padding:'0 2px'}}>→</div>`;
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 16px'}}>Exemplo trabalhado · um tabuleiro real, buscado dois movimentos à frente</p>
+
+        <${Mini} g=${root} hi=${[0,3]} size=${156} />
+        <p class="faint" style=${{textAlign:'center',margin:'8px 0 0'}}>A posição: uma célula vazia (canto superior direito, destacado).
+          Só duas jogadas mudam alguma coisa — <strong>cima</strong> e <strong>direita</strong>.</p>
+
+        <p style=${{marginTop:18}}>Pra que todo número abaixo seja conferível na mão, pontuamos um tabuleiro terminado com um substituto
+          deliberadamente simples da <code>evaluate()</code> escrita à mão pelo agente:</p>
+        <${TeX} block tex=${'\\text{evaluate(board)} = 3\\cdot(\\#\\,\\text{células vazias}) + 2\\cdot(\\#\\,\\text{pares iguais adjacentes})'} />
+        <p class="faint" style=${{marginTop:'-4px'}}>A heurística real é mais rica, mas a árvore é idêntica: troque por qualquer scorer e os passos não mudam.</p>
+
+        <p style=${{fontWeight:600,margin:'1.5em 0 .3em'}}>Olhada rasa — profundidade 1</p>
+        <p>Profundidade 1 significa: faz a jogada, deixa uma peça nascer, pontua o tabuleiro. Sem resposta. Cada jogada aqui deixa exatamente uma
+          célula vazia, então o nó chance dela tira a média de só dois desfechos — um 2 (probabilidade 0,9) ou um 4 (probabilidade 0,1) naquela célula.</p>
+        <div style=${{display:'flex',justifyContent:'center',gap:26,flexWrap:'wrap',margin:'14px 0'}}>
+          <div style=${{textAlign:'center'}}>
+            <${Mini} g=${upAfter} hi=${[3,3]} size=${132} />
+            <p class="faint" style=${{margin:'6px 0 0'}}>após <strong>cima</strong> · reward 0<br/>E = .9·4 + .1·2 = <strong style=${{color:'var(--text)'}}>3.8</strong></p>
+          </div>
+          <div style=${{textAlign:'center'}}>
+            <${Mini} g=${rightAfter} hi=${[0,0]} size=${132} />
+            <p class="faint" style=${{margin:'6px 0 0'}}>após <strong>direita</strong> · reward 0<br/>E = .9·2 + .1·2 = <strong style=${{color:'var(--text)'}}>2.0</strong></p>
+          </div>
+        </div>
+        <p>Um agente de um-movimento-de-profundidade escolhe <strong>cima</strong> — 3.8 ganha de 2.0. Cima empacota o tabuleiro um pouco mais apertado e o
+          score raso só consegue enxergar até aí. Decida uma previsão antes de buscarmos um movimento a mais:</p>
+        <p class="q" style=${{textAlign:'center'}}>Olhar um movimento mais fundo muda a escolha?</p>
+        <div style=${{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+          <button class="btn btn-ghost" disabled=${guess!==null} onClick=${()=>{setGuess('same');setDeep(true);}}>Não — continua cima</button>
+          <button class="btn btn-ghost" disabled=${guess!==null} onClick=${()=>{setGuess('flip');setDeep(true);}}>Sim — vira pra direita</button>
+        </div>
+
+        ${deep && html`<div style=${{marginTop:20}}>
+          <div class=${'feedback '+(guess==='flip'?'good':'bad')} style=${{marginBottom:16}}>
+            <strong>${guess==='flip'?'Isso — vira pra direita.':'Ela vira: profundidade 2 escolhe direita.'}</strong>${" "}
+            A profundidade 1 foi enganada. Veja o que a jogada <em>direita</em> prepara.
+          </div>
+
+          <p style=${{fontWeight:600,margin:'0 0 .3em'}}>Olhada mais funda — profundidade 2</p>
+          <p>Profundidade 2 adiciona mais um movimento do agente antes de pontuar: joga, spawn, <em>joga de novo</em>, spawn, pontua. Siga o
+            ramo da direita. Depois de <strong>direita</strong>, uma peça preenche o canto vazio — digamos um 2 — e agora o agente ganha um
+            segundo movimento. A melhor resposta dele é <strong>cima</strong>, que junta os dois 16 empilhados no topo da segunda
+            coluna por um <strong> +32</strong> de reward que a busca rasa nunca alcançou:</p>
+          <div style=${{display:'flex',justifyContent:'center',alignItems:'stretch',gap:6,flexWrap:'wrap',margin:'14px 0'}}>
+            <div style=${{textAlign:'center'}}><${Mini} g=${rightAfter} hi=${[0,0]} size=${116} /><p class="faint" style=${{margin:'5px 0 0'}}>afterstate da direita</p></div>
+            <${Arrow} />
+            <div style=${{textAlign:'center'}}><${Mini} g=${rightSpawn} hi=${[0,0]} size=${116} /><p class="faint" style=${{margin:'5px 0 0'}}>um 2 nasce (p .9)</p></div>
+            <${Arrow} />
+            <div style=${{textAlign:'center'}}><${Mini} g=${rightThenUp} hi=${[3,1]} size=${116} /><p class="faint" style=${{margin:'5px 0 0'}}>então <strong>cima</strong> → +32</p></div>
+          </div>
+          <p>Pontue os dois desfechos de spawn daquele último tabuleiro e dobre o reward de +32 de volta:</p>
+          <${TeX} block tex=${'V(\\text{direita, depois cima}) = 32 + (0.9\\cdot 8 + 0.1\\cdot 6) = 32 + 7.8 = 39.8'} />
+          <p>O caso do 4-no-canto (probabilidade 0,1) leva ao mesmo movimento cima de +32 e ao mesmo 39.8, então o ramo da direita
+            vale <strong>39.8</strong> de qualquer jeito. O ramo cima, buscado na mesma profundidade, só alcança merges pequenos
+            e sai em <strong>6.02</strong>:</p>
+          <div style=${{overflowX:'auto'}}><table>
+            <thead><tr><th>jogada raiz</th><th>valor profundidade 1</th><th>valor profundidade 2</th></tr></thead>
+            <tbody>
+              <tr><td><strong>cima</strong></td><td>3.8 · vencedor raso</td><td>6.02</td></tr>
+              <tr><td><strong>direita</strong></td><td>2.0</td><td><strong style=${{color:'var(--good)'}}>39.8 · vencedor profundo</strong></td></tr>
+            </tbody>
+          </table></div>
+          <p>Esse é o argumento inteiro pela profundidade em um tabuleiro. A jogada arrumadinha era uma armadilha; a jogada vencedora só parece
+            boa quando você vê o merge esperando um passo atrás dela. É exatamente por isso que os papers treinam com uma política
+            barata de 1-ply mas trocam pro expectimax de 3-ply na hora de jogar por cerca de +80% de score — cada ply extra descobre
+            payoffs para os quais a busca mais rasa é cega.</p>
+        </div>`}
+      </div>`;
+    }
+
+    /* ================= N-tuple lookup demo ================= */
+    function NTupleDemo(){
+      const board=[[8,4,2,2],[16,8,4,0],[2,64,2,0],[0,0,4,2]];
+      const exp=v=>v===0?0:Math.log2(v);
+      const TUPLES=[
+        {name:'row 0',cells:[[0,0],[0,1],[0,2],[0,3]]},
+        {name:'row 1',cells:[[1,0],[1,1],[1,2],[1,3]]},
+        {name:'row 2',cells:[[2,0],[2,1],[2,2],[2,3]]},
+        {name:'row 3',cells:[[3,0],[3,1],[3,2],[3,3]]},
+        {name:'col 0',cells:[[0,0],[1,0],[2,0],[3,0]]},
+        {name:'col 1',cells:[[0,1],[1,1],[2,1],[3,1]]},
+        {name:'col 2',cells:[[0,2],[1,2],[2,2],[3,2]]},
+        {name:'col 3',cells:[[0,3],[1,3],[2,3],[3,3]]},
+      ];
+      // deterministic pseudo-random "trained" LUT value from index (illustrative only)
+      const lut=idx=>Math.round((((idx*2654435761)>>>0)%2000)/10-100)/1;
+      const [sel,setSel]=useState([0]);
+      const toggle=i=>setSel(s=>s.includes(i)?s.filter(x=>x!==i):[...s,i]);
+      const selCells=new Set(sel.flatMap(i=>TUPLES[i].cells.map(([r,c])=>r+','+c)));
+      const rows=sel.map(i=>{
+        const t=TUPLES[i];
+        const exps=t.cells.map(([r,c])=>exp(board[r][c]));
+        const idx=exps.reduce((a,e,k)=>a+e*Math.pow(16,k),0);
+        return {name:t.name, exps, idx, val:lut(idx)};
+      });
+      const total=rows.reduce((a,r)=>a+r.val,0);
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 12px'}}>Interativo · ligue e desligue tuplas, veja o valor se montar</p>
+        <div class="grid2048" style=${{maxWidth:280}}>
+          ${board.flatMap((row,r)=>row.map((v,c)=>html`<div key=${r+'-'+c} class="tile"
+            style=${{...tileStyle(v), opacity:selCells.size&&!selCells.has(r+','+c)?0.28:1}}>${v||''}</div>`))}
+        </div>
+        <div style=${{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'center',margin:'14px 0'}}>
+          ${TUPLES.map((t,i)=>html`<button key=${i} class="btn btn-ghost"
+            style=${sel.includes(i)?{borderColor:'var(--accent)',color:'var(--accent)'}:{}}
+            onClick=${()=>toggle(i)}>${t.name}</button>`)}
+        </div>
+        ${rows.length ? html`<div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>tupla</th><th>exponentes das células</th><th>índice na tabela</th><th>valor da LUT</th></tr></thead>
+            <tbody>
+            ${rows.map(r=>html`<tr key=${r.name}>
+              <td><code>${r.name}</code></td>
+              <td><code>[${r.exps.join(', ')}]</code></td>
+              <td><code>${r.idx.toLocaleString()}</code> <span class="faint">de 16⁴ = 65.536</span></td>
+              <td style=${{fontVariantNumeric:'tabular-nums'}}>${r.val.toFixed(1)}</td>
+            </tr>`)}
+          </tbody>
+        </table></div>` : html`<p class="faint" style=${{textAlign:'center'}}>Selecione ao menos uma tupla.</p>`}
+        <p style=${{textAlign:'center',margin:'6px 0 0'}}>
+          <${TeX} tex=${'V(\\text{board}) = \\sum_i \\text{LUT}_i[\\,\\text{idx}_i\\,]'} />
+          ${'\u00A0'}=${'\u00A0'}<strong style=${{color:'var(--accent)'}}>${total.toFixed(1)}</strong>
+        </p>
+        <p class="faint" style=${{textAlign:'center',marginTop:6}}>Codificação da célula: valor da peça → exponente (0→0, 2→1, 4→2, 8→3, …).
+          Índice = dígitos em base 16. Os valores da LUT aqui são ilustrativos; os reais saem do treino.
+          Avaliar um tabuleiro = um punhado de lookups em array e uma soma. Sem forward pass, sem camadas.</p>
+      </div>`;
+    }
+
+    /* ================= TD learning convergence demo ================= */
+    function TDDemo(){
+      const TRUE_V=100, NOISE=25;
+      const [alpha,setAlpha]=useState(0.10);
+      const [histories,setHistories]=useState([[0]]);   // list of runs, current run last
+      const hist=histories[histories.length-1];
+      const V=hist[hist.length-1];
+      const stepN=n=>{
+        setHistories(hs=>{
+          const h=[...hs[hs.length-1]];
+          let v=h[h.length-1];
+          for(let k=0;k<n;k++){
+            const sample=TRUE_V+(Math.random()*2-1)*NOISE;   // r + V(next afterstate), noisy
+            v=v+alpha*(sample-v);
+            h.push(v);
+          }
+          return [...hs.slice(0,-1), h];
+        });
+      };
+      const reset=()=>setHistories(hs=>[...hs.map(h=>h), [0]].slice(-4));  // keep up to 3 ghosts + new
+      const W=560,H=200,PAD=30,N=Math.max(60,hist.length);
+      const x=i=>PAD+(W-2*PAD)*i/(N-1);
+      const y=v=>H-PAD-(H-2*PAD)*Math.min(v,140)/140;
+      const path=h=>h.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 10px'}}>Interativo · uma estimativa de valor sendo treinada por updates de TD</p>
+        <svg viewBox=${'0 0 '+W+' '+H} style=${{width:'100%',height:'auto'}}>
+          <line x1=${PAD} y1=${y(TRUE_V)} x2=${W-PAD} y2=${y(TRUE_V)} stroke="var(--good)" stroke-dasharray="5 4" stroke-width="1.4"/>
+          <text x=${W-PAD} y=${y(TRUE_V)-6} text-anchor="end" fill="var(--good)" font-size="11">valor real = 100</text>
+          <line x1=${PAD} y1=${H-PAD} x2=${W-PAD} y2=${H-PAD} stroke="var(--border)"/>
+          <line x1=${PAD} y1=${PAD-10} x2=${PAD} y2=${H-PAD} stroke="var(--border)"/>
+          <text x=${PAD} y=${H-10} fill="var(--text-faint)" font-size="11">updates →</text>
+          ${histories.slice(0,-1).map((h,i)=>html`<path key=${i} d=${path(h)} fill="none" stroke="var(--text-faint)" stroke-width="1" opacity="0.35"/>`)}
+          <path d=${path(hist)} fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <circle cx=${x(hist.length-1)} cy=${y(V)} r="3.5" fill="var(--accent)"/>
+        </svg>
+        <div style=${{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',justifyContent:'center',marginTop:10}}>
+          <label style=${{fontSize:'.9rem'}}>α (learning rate): <strong>${alpha.toFixed(2)}</strong></label>
+          <input type="range" min="0.01" max="0.9" step="0.01" value=${alpha}
+            onInput=${e=>setAlpha(+e.target.value)} style=${{width:180}} />
+          <button class="btn btn-ghost" onClick=${()=>stepN(1)}>1 update</button>
+          <button class="btn" onClick=${()=>stepN(50)}>50 updates</button>
+          <button class="btn btn-ghost" onClick=${reset}>nova run</button>
+        </div>
+        <p style=${{textAlign:'center',margin:'12px 0 0'}}>
+          <${TeX} tex=${'V \\leftarrow V + \\alpha\\,\\big[\\underbrace{(r + V(s\'_{next}))}_{\\text{alvo observado}} - V\\big]'} />
+          ${'\u00A0'}·${'\u00A0'}<${TeX} tex=${'V'} /> atual = <strong style=${{color:'var(--accent)'}}>${V.toFixed(1)}</strong>
+        </p>
+        <p class="faint" style=${{textAlign:'center',marginTop:6}}>O alvo é ruidoso (cada jogo se desenrola diferente), então a estimativa
+          nunca pousa exatamente — ela fica oscilando. Tente α = 0.8: rápido mas trêmulo. Tente α = 0.02: suave mas lento.
+          No sistema real esse update roda em cada movimento de cada jogo de self-play, empurrando as entradas exatas da LUT que foram somadas.</p>
+      </div>`;
+    }
+
+    /* ================= Index anatomy: one lookup, end to end ================= */
+    function IndexAnatomy(){
+      const CYCLE=[0,2,4,8,16,32,64,128];
+      const [board,setBoard]=useState([[8,4,2,2],[16,8,4,0],[2,64,2,0],[0,0,4,2]]);
+      const [ti,setTi]=useState(0);
+      const TUPLES=[
+        {name:'row 0',cells:[[0,0],[0,1],[0,2],[0,3]]},
+        {name:'col 3',cells:[[0,3],[1,3],[2,3],[3,3]]},
+        {name:'square (1,1)',cells:[[1,1],[1,2],[2,1],[2,2]]},
+      ];
+      const t=TUPLES[ti];
+      const inT=(r,c)=>t.cells.some(([tr,tc])=>tr===r&&tc===c);
+      const exp=v=>v===0?0:Math.log2(v);
+      const vals=t.cells.map(([r,c])=>board[r][c]);
+      const exps=vals.map(exp);
+      const idx=exps.reduce((a,e,k)=>a+e*Math.pow(16,k),0);
+      const lut=i=>Math.round((((i*2654435761)>>>0)%2000)/10-100)/1;
+      const cyc=(r,c)=>{
+        if(!inT(r,c)) return;
+        setBoard(b=>b.map((row,rr)=>row.map((v,cc)=>{
+          if(rr!==r||cc!==c) return v;
+          return CYCLE[(CYCLE.indexOf(v)+1)%CYCLE.length];
+        })));
+      };
+      const W=560,SX=30,EX=530,SY=26;
+      const mx=SX+(EX-SX)*idx/65535;
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 10px'}}>Interativo · anatomia de UM lookup — clique nas células destacadas pra mudar os valores</p>
+        <div style=${{display:'flex',gap:6,justifyContent:'center',marginBottom:12,flexWrap:'wrap'}}>
+          ${TUPLES.map((tp,i)=>html`<button key=${i} class="btn btn-ghost"
+            style=${i===ti?{borderColor:'var(--accent)',color:'var(--accent)'}:{}}
+            onClick=${()=>setTi(i)}>${tp.name}</button>`)}
+        </div>
+        <div class="grid2048" style=${{maxWidth:260}}>
+          ${board.flatMap((row,r)=>row.map((v,c)=>html`<div key=${r+'-'+c} class="tile"
+            onClick=${()=>cyc(r,c)}
+            style=${{...tileStyle(v), cursor:inT(r,c)?'pointer':'default',
+              opacity:inT(r,c)?1:0.25, outline:inT(r,c)?'2px solid var(--accent)':'none'}}>${v||''}</div>`))}
+        </div>
+        <div style=${{maxWidth:520,margin:'16px auto 0',fontSize:'.95rem'}}>
+          <div style=${{display:'grid',gridTemplateColumns:'150px 1fr',gap:'6px 12px',alignItems:'baseline'}}>
+            <span class="muted">1 · valores das células</span><code>[${vals.join(', ')}]</code>
+            <span class="muted">2 · exponentes</span><code>[${exps.join(', ')}]</code>
+            <span class="muted">3 · índice base 16</span>
+            <span><${TeX} tex=${exps[0]+' + 16 \\cdot '+exps[1]+' + 256 \\cdot '+exps[2]+' + 4096 \\cdot '+exps[3]+' = '+idx.toLocaleString()} /></span>
+          </div>
+        </div>
+        <svg viewBox=${'0 0 '+W+' 92'} style=${{width:'100%',height:'auto',marginTop:14}}>
+          <rect x=${SX} y=${SY} width=${EX-SX} height="18" rx="4" fill="var(--surface-2)" stroke="var(--border)"/>
+          ${[0.125,0.25,0.375,0.5,0.625,0.75,0.875].map(f=>html`<line key=${f}
+            x1=${SX+(EX-SX)*f} y1=${SY} x2=${SX+(EX-SX)*f} y2=${SY+18} stroke="var(--border)" stroke-width="1"/>`)}
+          <text x=${SX} y=${SY-7} fill="var(--text-faint)" font-size="10">índice 0</text>
+          <text x=${EX} y=${SY-7} text-anchor="end" fill="var(--text-faint)" font-size="10">65.535</text>
+          <rect x=${Math.min(Math.max(mx-2,SX),EX-4)} y=${SY-3} width="4" height="24" rx="2" fill="var(--accent)"/>
+          <text x=${Math.min(Math.max(mx,SX+70),EX-70)} y=${SY+44} text-anchor="middle" fill="var(--text)" font-size="12" font-weight="600">
+            table[${idx.toLocaleString()}] = ${lut(idx).toFixed(1)}</text>
+          <text x=${Math.min(Math.max(mx,SX+70),EX-70)} y=${SY+60} text-anchor="middle" fill="var(--text-faint)" font-size="10">
+            a tabela desta tupla · um único array de 65.536 números</text>
+        </svg>
+        <p class="faint" style=${{textAlign:'center',marginTop:8}}>Mude uma célula → um dígito do índice muda → uma entrada
+          diferente do array é lida. É essa a "rede" inteira: padrão entra, entrada do array sai. (Valores ilustrativos.)</p>
+      </div>`;
+    }
+
+    /* ================= Symmetry demo: 8 boards, one shared table ================= */
+    function SymmetryDemo(){
+      // Board chosen so the row-0 indices of the 8 symmetries spread visibly across the table
+      // (verified in Node: 8 distinct indices, min gap ~1.8% of the bar).
+      const base=[[4,8,4,64],[512,128,2,256],[2,16,512,512],[256,64,2,1024]];
+      const rotCW=g=>g.map((row,r)=>row.map((_,c)=>g[3-c][r]));
+      const mirror=g=>g.map(row=>[...row].reverse());
+      const boards=[]; let g=base;
+      for(let k=0;k<4;k++){ boards.push({g,label:'rot '+k*90+'°'}); g=rotCW(g); }
+      g=mirror(base);
+      for(let k=0;k<4;k++){ boards.push({g,label:'espelho + '+k*90+'°'}); g=rotCW(g); }
+      const exp=v=>v===0?0:Math.log2(v);
+      const idxRow0=gr=>gr[0].map(exp).reduce((a,e,k)=>a+e*Math.pow(16,k),0);
+      const [sel,setSel]=useState(0);
+      const idxs=boards.map(b=>idxRow0(b.g));
+      const W=560,SX=30,EX=530,SY=16;
+      return html`<div class="fig">
+        <p class="faint" style=${{textAlign:'center',margin:'0 0 12px'}}>Interativo · um tabuleiro, suas 8 simetrias, UMA tabela compartilhada — clique num tabuleiro</p>
+        <div style=${{display:'grid',gridTemplateColumns:'repeat(4, 1fr)',gap:10,maxWidth:540,margin:'0 auto'}}>
+          ${boards.map((b,i)=>html`<div key=${i} onClick=${()=>setSel(i)}
+            style=${{cursor:'pointer',padding:6,borderRadius:8,textAlign:'center',
+              border:'1px solid '+(i===sel?'var(--accent)':'var(--border)'),
+              background:i===sel?'var(--accent-soft)':'var(--bg)'}}>
+            <div style=${{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:2}}>
+              ${b.g.flatMap((row,r)=>row.map((v,c)=>html`<div key=${r+'-'+c}
+                style=${{...tileStyle(v),
+                  aspectRatio:'1',borderRadius:2,display:'flex',alignItems:'center',justifyContent:'center',
+                  fontWeight:600,fontSize:v>=1024?'.42rem':v>=128?'.5rem':'.58rem',
+                  outline:r===0?'1.5px solid '+(i===sel?'var(--accent)':'var(--text-faint)'):'none',
+                  outlineOffset:'-1.5px'}}>${v||''}</div>`))}
+            </div>
+            <div class="faint" style=${{marginTop:4,fontSize:'.7rem'}}>${b.label}</div>
+          </div>`)}
+        </div>
+        <svg viewBox=${'0 0 '+W+' 74'} style=${{width:'100%',height:'auto',marginTop:16}}>
+          <rect x=${SX} y=${SY} width=${EX-SX} height="18" rx="4" fill="var(--surface-2)" stroke="var(--border)"/>
+          <text x=${SX} y=${SY-5} fill="var(--text-faint)" font-size="10">a ÚNICA tabela de "linha" compartilhada · 0 … 65.535</text>
+          ${idxs.map((ix,i)=>{
+            const x=SX+(EX-SX)*ix/65535;
+            return html`<rect key=${i} x=${Math.min(Math.max(x-1.5,SX),EX-3)} y=${SY-2} width="3" height="22" rx="1.5"
+              fill=${i===sel?'var(--accent)':'var(--text-faint)'} opacity=${i===sel?1:0.55}
+              style=${{cursor:'pointer'}} onClick=${()=>setSel(i)}/>`;
+          })}
+          <text x=${(SX+EX)/2} y=${SY+46} text-anchor="middle" fill="var(--text)" font-size="12">
+            ${boards[sel].label} lê/escreve table[${idxs[sel].toLocaleString()}]</text>
+        </svg>
+        <p class="faint" style=${{textAlign:'center',marginTop:6}}>A linha contornada é a mesma tupla lida em cada orientação.
+          Oito orientações → oito entradas diferentes — mas todas na <em>mesma</em> tabela. Uma posição real visitada
+          num jogo atualiza a classe de simetria inteira de uma vez: ~8× de eficiência de dados, de graça.</p>
+      </div>`;
+    }
+
+    /* ================= Quizzes ================= */
+
+    const QUIZ_DESTINATION=[
+      { q:"Em uma frase, qual é a mudança de engenharia de verdade do Milestone 2?",
+        options:[
+          { text:"Reescrever a busca expectimax pra ser mais profunda e rápida.", correct:false,
+            feedback:"A busca já funciona e fica como está. Ajustar profundidade é um experimento de avaliação, não o milestone. A mudança acontece nas folhas da árvore, não na estrutura dela." },
+          { text:"Trocar a heurística evaluate() escrita à mão por uma value function aprendida por self-play.", correct:true,
+            feedback:"Esse é o milestone inteiro numa linha. Engine e expectimax ficam de pé; a avaliação da folha vira uma n-tuple network treinada por TD learning." },
+          { text:"Adicionar um nó min pra o agente lidar com os movimentos do ambiente.", correct:false,
+            feedback:"Essa é justamente a confusão que o TA avisou. O ambiente é aleatório, não adversarial, então o nó dele é um nó chance (média ponderada), que já temos. Um nó min deixaria o agente paranoico com desfechos que são só azar de dado." },
+          { text:"Migrar pra uma deep Q-network com PyTorch.", correct:false,
+            feedback:"Era a ideia original da proposta, e é exatamente onde não devemos centrar o milestone: a literatura mostra que deep RL fica abaixo do esperado no 2048 (uma DQN mal chegou na peça 512), o TA pediu pra ficarmos nos tópicos do curso, e treinar uma DQN direito leva mais tempo do que temos. Sobrevive só como ablation opcional." },
+        ]},
+    ];
+
+    const QUIZ_EXPECTIMAX=[
+      { q:"Por que o 2048 usa um nó chance em vez de um nó min?",
+        options:[
+          { text:"Porque um nó min seria lento demais de calcular.", correct:false,
+            feedback:"Velocidade não é o motivo — min e média custam o mesmo pra calcular sobre os mesmos filhos. A razão é sobre o que o ambiente É: ele rola dados, não escolhe contra a gente." },
+          { text:"Porque a peça aleatória não está tentando nos prejudicar; ela segue probabilidades fixas, então o resumo correto daquele nível é o valor esperado.", correct:true,
+            feedback:"Exato. Minimax modela um adversário que escolhe o pior caso pra você de propósito. O ambiente do 2048 escolhe aleatoriamente: 90% um 2, 10% um 4, uniforme sobre as células vazias. O modelo honesto de um lance de dado é a média ponderada pela probabilidade." },
+          { text:"Porque o 2048 não tem segundo jogador, então dá pra pular o nível do oponente inteiro.", correct:false,
+            feedback:"Meio certo, e a metade errada importa: não dá pra pular o nível, porque a peça que nasce realmente muda o tabuleiro e precisa ser antecipada. A gente modela ela — só que como acaso, não como malícia." },
+        ]},
+      { q:"Nosso chance_node amostra no máximo 10 células vazias em vez de expandir todas. O que isso troca?",
+        options:[
+          { text:"Nada; com 10 amostras a esperança é exata.", correct:false,
+            feedback:"Amostrar dá uma estimativa do valor esperado, não o valor exato — com até 14 células vazias, 10 amostras podem perder algumas. Costuma ficar perto, mas é uma aproximação." },
+          { text:"Um pouco de precisão no valor esperado, em troca de um branching factor muito menor e uma busca mais rápida.", correct:true,
+            feedback:"Certo. Expansão completa é (células vazias × 2 valores de peça) filhos por nó chance, o que explode com a profundidade. Amostrar limita isso. A estimativa é ruidosa mas não-viesada o suficiente, e o speedup deixa buscar mais fundo — geralmente um saldo positivo." },
+          { text:"Faz o agente ignorar as peças 4.", correct:false,
+            feedback:"Não — pra cada célula amostrada a gente ainda expande tanto o 2 (peso 0,9) quanto o 4 (peso 0,1). O que é subamostrado é o conjunto de células, não os valores das peças." },
+        ]},
+    ];
+
+    const QUIZ_NTUPLE=[
+      { q:"O que tem dentro de uma n-tuple network treinada?",
+        options:[
+          { text:"Camadas de neurônios com pesos e funções de ativação.", correct:false,
+            feedback:"Essa é a armadilha do nome. Não há camadas, nem neurônios, nem ativações, nem batches. Se a sua imagem mental tem um forward pass, troque por: arrays, indexados por padrões do tabuleiro, somados." },
+          { text:"Lookup tables — uma por tupla — cujas entradas são scores aprendidos pra padrões locais do tabuleiro.", correct:true,
+            feedback:"É isso tudo. Cada tupla observa um conjunto fixo de células; o padrão dessas células é um índice na tabela daquela tupla; o valor do tabuleiro é a soma das entradas consultadas. Treinar = ajustar entradas da tabela." },
+          { text:"Uma árvore de posições do tabuleiro com seus valores exatos.", correct:false,
+            feedback:"Isso seria uma transposition table / cache de árvore de jogo, um objeto diferente. A n-tuple network generaliza: ela pontua padrões de poucas células, então tabuleiros que ela nunca viu ainda recebem um valor pelas partes familiares." },
+        ]},
+      { q:"Por que as 8 simetrias do tabuleiro tornam o treino ~8× mais eficiente em dados?",
+        options:[
+          { text:"Porque cada simetria tem sua própria tabela separada que treina em paralelo.", correct:false,
+            feedback:"É o contrário: a ideia é que as simetrias COMPARTILHAM uma tabela. Tabelas separadas aprenderiam 8 cópias do mesmo conhecimento devagar." },
+          { text:"Porque um tabuleiro observado atualiza as mesmas tabelas compartilhadas por todas as 8 rotações/reflexões, então cada experiência ensina 8 posições equivalentes de uma vez.", correct:true,
+            feedback:"Certo — as regras do 2048 não se importam com orientação, então o valor de um padrão é independente de orientação, e toda visita a um tabuleiro real grava conhecimento pra a classe de simetria inteira." },
+          { text:"Porque simetria reduz o tabuleiro a 2 células.", correct:false,
+            feedback:"Simetria não encolhe o tabuleiro; ela identifica tabuleiros equivalentes. Os tamanhos das tuplas continuam os mesmos — o que muda é que padrões equivalentes compartilham uma entrada da tabela." },
+        ]},
+    ];
+
+    const QUIZ_FINAL=[
+      { q:"Trace uma decisão na hora de jogar (depois do M2). Qual sequência está certa?",
+        options:[
+          { text:"max_node tenta as jogadas legais → cada afterstate vai pro chance_node → o nó chance tira a média sobre os spawns amostrados → a recursão termina em evaluate(), que agora é ntuple.value() → a melhor ação vence.", correct:true,
+            feedback:"Esse é o sistema integrado inteiro: busca do M1, valor aprendido do M2, unidos na folha." },
+          { text:"A n-tuple network escolhe a jogada diretamente, e o expectimax confere.", correct:false,
+            feedback:"A n-tuple network pontua tabuleiros; ela nunca escolhe jogadas sozinha (isso seria jogo greedy de 1-ply, nossa baseline). No sistema final o expectimax escolhe a jogada, consultando o valor da n-tuple nas folhas." },
+          { text:"O TD learning roda durante o jogo pra se adaptar ao tabuleiro atual.", correct:false,
+            feedback:"Treinar e jogar são fases separadas. O TD roda durante o self-play e escreve as tabelas; na hora de jogar/demonstrar as tabelas estão congeladas e só são lidas. (Continuar aprendendo na hora de jogar existe na pesquisa, mas não é o nosso design.)" },
+        ]},
+      { q:"Durante o treino TD jogamos greedy de 1-ply (argmax de r + V(afterstate)) em vez de expectimax completo. Por quê?",
+        options:[
+          { text:"Porque o expectimax daria alvos de treino errados.", correct:false,
+            feedback:"Não errados — só caros. Os alvos seriam bons (indiscutivelmente melhores); o problema é o custo por movimento." },
+          { text:"Porque treinar precisa de milhões de movimentos, e uma política barata torna isso viável; a busca profunda é adicionada depois, na hora de jogar, em cima da value function pronta.", correct:true,
+            feedback:"Exatamente a divisão de trabalho: movimentos baratos durante o aprendizado (volume importa), pensamento caro durante a demo (qualidade importa). Os papers treinam greedy e depois acoplam expectimax de 3-ply em cima por +80% de score." },
+          { text:"Porque a n-tuple network não pode ser lida durante o treino.", correct:false,
+            feedback:"Ela é lida o tempo todo durante o treino — o argmax greedy consulta V(afterstate) em cada movimento. O que a gente evita é a caminhada exponencial pela árvore por movimento de treino." },
+        ]},
+      { q:"O relatório precisa documentar nossa mudança em relação à proposta (deep NN → n-tuple). Qual é o jeito mais forte de enquadrar isso?",
+        options:[
+          { text:"Largar a NN quietinho e torcer pra ninguém notar.", correct:false,
+            feedback:"O guia de correção tem uma seção explícita de mudanças-em-relação-à-proposta — esconder a mudança joga fora nota de graça e parece descuido. Mudança documentada e justificada é premiada." },
+          { text:"Como uma correção de rota puxada pelo feedback do TA e pela literatura, com a NN mantida como experimento de ablation opcional.", correct:false,
+            feedback:"Perto — esse é o enquadramento certo, mas a versão mais forte também mostra os comprovantes: cite Szubert & Jaśkowski (97% de win rate com n-tuple+TD) e a evidência de que a DQN fica abaixo do esperado, e se der tempo, a nossa própria run de uma NN pequena pontuando abaixo da n-tuple. Evidência ganha da narrativa." },
+          { text:"Como uma correção de rota respaldada por evidência: feedback do TA + resultados publicados (n-tuple TD ≈ 97% de win rate; DQN estagna perto da peça 512), idealmente com os nossos próprios números de ablation como prova.", correct:true,
+            feedback:"Essa é a versão nota máxima: mostra que lemos o feedback, checamos a literatura, tomamos uma decisão de engenharia e medimos." },
+        ]},
+    ];
+
+    /* ================= Page ================= */
+
+    const moveFlowSteps=[
+      { state:
+`board:                      score: 20
+   2   2   .   .
+   4   .   .   .
+   2   .   .   .
+   .   .   .   2`,
+        note:'O tabuleiro ao vivo. O loop do jogo pergunta ao agente: choose_action(state). Tudo que o agente faz acontece em CÓPIAS — o tabuleiro real fica intocado até o jogo aplicar a jogada escolhida.' },
+      { state:
+`agente retorna: "left"
+
+Game.move("left") chama:
+MOVES["left"](board.grid)
+  → new_grid, merged_values=[4], changed=True`,
+        note:'movement.py desliza e junta. Ele retorna três coisas: o grid deslizado, a lista de valores juntados, e se algo mudou. Note o que ele NÃO faz: gerar uma peça. O grid retornado é o afterstate.' },
+      { state:
+`afterstate:                 merged: [4]
+   4   .   .   .
+   4   .   .   .
+   2   .   .   .
+   2   .   .   .`,
+        note:'changed=True, então o jogo aceita a jogada. Se changed fosse False (uma jogada ilegal), o jogo retornaria False e nada aconteceria — essa flag é o nosso detector de jogada ilegal, e o max_node também a usa.' },
+      { state:
+`score += points_after_merge([4])
+score: 20 → 24        (reward = +4)`,
+        note:'score.py soma os valores juntados. Esse +4 é exatamente o "reward" da jogada em termos de MDP — a quantidade que o nosso agente de RL vai aprender a acumular.' },
+      { state:
+`spawn_tile(board)
+   4   .   .   .
+   4   .   2✦  .
+   2   .   .   .
+   2   .   .   .`,
+        note:'Só agora a aleatoriedade entra: spawn.py solta um 2 (90%) ou um 4 (10%) numa célula vazia uniformemente aleatória. O tabuleiro resultante é o próximo estado que o agente vai ver. Uma volta completa do loop do MDP está feita.' },
+    ];
+
+    /* ================= Sidebar content navigation (scroll-spy) ================= */
+    const SECTIONS=[
+      { id:'s1', n:'01', label:'Onde estamos' },
+      { id:'s2', n:'02', label:'O destino' },
+      { id:'s3', n:'03', label:'Expectimax' },
+      { id:'s4', n:'04', label:'O afterstate' },
+      { id:'s5', n:'05', label:'N-tuple network' },
+      { id:'s6', n:'06', label:'TD learning' },
+      { id:'s7', n:'07', label:'Integração' },
+      { id:'s8', n:'08', label:'Quem faz o quê' },
+      { id:'s9', n:'09', label:'Checagem final' },
+    ];
+    function SideNav(){
+      const [active,setActive]=useState('s1');
+      useEffect(()=>{
+        const onScroll=()=>{
+          let cur=SECTIONS[0].id;
+          for(const s of SECTIONS){
+            const el=document.getElementById(s.id);
+            if(el && el.getBoundingClientRect().top <= 140) cur=s.id;
+          }
+          setActive(cur);
+        };
+        onScroll();
+        addEventListener('scroll', onScroll, {passive:true});
+        return ()=>removeEventListener('scroll', onScroll);
+      },[]);
+      return html`<nav class="sidenav">
+        <p class="snav-title">2048 RL · Bússola do Time</p>
+        ${SECTIONS.map(s=>html`<a key=${s.id} href=${'#'+s.id} class=${active===s.id?'active':''}
+          onClick=${e=>{e.preventDefault();
+            const el=document.getElementById(s.id);
+            if(el) el.scrollIntoView({behavior:'smooth',block:'start'});}}>
+          <span class="sn">${s.n}</span><span>${s.label}</span>
+        </a>`)}
+      </nav>`;
+    }
+
+    function Guide(){
+      return html`<${React.Fragment}>
+        <${SideNav} />
+        <div class="wrap">
+        <p class="kicker">CMPT 310 · Grupo 1 · projeto de fim de curso</p>
+        <h1>2048 RL — Bússola do Time</h1>
+        <p class="lead">Um documento pro time inteiro: onde o projeto está hoje, como cada componente que falta funciona,
+          como eles se encaixam no sistema final, e quem constrói o quê pro Milestone 2.</p>
+        <div class="metastrip">
+          <span>Relatório do M2 · <strong>29/jul</strong></span>
+          <span>Demo · <strong>7/ago</strong> (presença obrigatória — faltar = 0 no projeto)</span>
+          <span>Entrega final · <strong>12/ago</strong></span>
+          <span class="faint">Fatos do repo verificados contra o main, 9/jul</span>
+        </div>
+
+        <hr/>
+
+        <h2 id="s1">1 · Onde estamos</h2>
+        <p>Estamos construindo um programa que joga 2048 sozinho, e joga bem. Ele tem duas metades. O${" "}
+          <strong>game engine</strong> — o tabuleiro, os movimentos, a pontuação, as peças aleatórias — é o mundo onde o jogo
+          acontece, e está pronto. O <strong>agente</strong> é o cérebro que escolhe os movimentos, e está pela metade:
+          ele já olha alguns movimentos à frente pra escolher o melhor (essa antecipação é o <em>expectimax</em>, §3), mas por
+          enquanto julga posições com uma regra de bolso escrita à mão. O Milestone 2 é ensinar esse cérebro a julgar
+          posições pela experiência. Então a linha honesta: <strong>Milestone 1 (o engine + um agente de antecipação
+          funcionando) está pronto; Milestone 2 (M2) é a metade do aprendizado.</strong></p>
+        <p>Aqui está tudo que já vive no <code>main</code>. Alguns nomes nesta tabela (<em>expectimax</em>,${" "}
+          <em>MDP</em>, <em>nó max/chance</em>, <em>afterstate</em>) são a maquinaria do agente — isto é só o
+          inventário, e cada um é construído do zero nos §2–§6. Leia a tabela como "o que existe e quem é dono,"
+          não como um lugar pra já entender o cérebro.</p>
+
+        <h3>Os módulos no main</h3>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>módulo</th><th>dono</th><th>o que faz</th><th>status</th></tr></thead>
+          <tbody>
+            <tr><td><code>game/board.py</code></td><td>João</td><td>grid numpy 4×4, reset/copy/get-set peça, helpers de célula vazia</td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td><code>game/movement.py</code></td><td>Praneet</td><td>slide+merge pras 4 direções: <code>(new_grid, merged_values, changed)</code></td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td><code>game/score.py</code></td><td>Ryan</td><td>pontos das peças juntadas (= o reward da jogada)</td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td><code>game/spawn.py</code></td><td>Jayden</td><td>peça aleatória: 2 (90%) / 4 (10%) numa célula vazia aleatória</td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td><code>game/game.py</code></td><td>Ryan</td><td>amarra tudo: <code>move()</code>, <code>is_game_over()</code>, pontuação, spawn</td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td><code>agents/agent.py</code></td><td>Praneet</td><td>interface base: <code>choose_action(state)</code></td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td><code>agents/random_agent.py</code></td><td>Jayden</td><td>movimento aleatório uniforme — nossa baseline de avaliação</td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td><code>agents/expectimax_agent.py</code></td><td>João + Ryan + Praneet</td><td>nó max, nó chance (amostragem de 10 células), o scorer <code>evaluate()</code> escrito à mão</td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td><code>ui/</code> (renderer, menu)</td><td>Ryan</td><td>renderer do tabuleiro em pygame, header, menu, loop do jogo</td><td><span class="statuschip chip-done">pronto</span></td></tr>
+            <tr><td>n-tuple network</td><td>—</td><td>value function aprendida (este documento, §5)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+            <tr><td>loop de treino TD</td><td>—</td><td>treino por self-play (este documento, §6)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+            <tr><td><code>main.py</code> ponto de entrada</td><td>João</td><td>loop de rollout do MDP: observa → escolhe → aplica → repete</td><td><span class="statuschip chip-done">pronto</span></td></tr>
+          </tbody>
+        </table></div>
+
+        <div class="callout good">
+          <p class="ct">O contrato da interface (acordado depois de um bug real — mantenha)</p>
+          <p style=${{margin:0}}><strong>Os agentes recebem o grid numpy 4×4 cru, nunca o objeto <code>Board</code>.</strong>${" "}
+            Tudo dentro do agente (<code>movement.py</code>, <code>max_node</code>, <code>evaluate</code>) opera
+            no grid; quem chama passa <code>game.board.grid.copy()</code>. Aprendemos isso do jeito concreto:${" "}
+            <code>main.py</code> originalmente passava o objeto <code>Board</code> e quebrava com${" "}
+            <code>AttributeError: 'Board' object has no attribute 'shape'</code> — corrigido em 9/jul. Se um merge algum dia
+            reintroduzir a incompatibilidade, essa mensagem de erro é a assinatura. Com o contrato respeitado o loop roda
+            limpo: expectimax de profundidade 2 jogou 200 movimentos em ~4 s e alcançou a peça 256 nos testes (aviso pra demo:
+            profundidade 3 é ~1 s por movimento — ótimo pra exibir, lento pra rodadas de avaliação).</p>
+        </div>
+
+        <h3>Como um movimento flui pelo código</h3>
+        <p>Este é o game engine inteiro num trace. Se você entender estes cinco passos, você entende o M1.
+          Preveja cada passo antes de avançar.</p>
+        <${Stepper} title="Uma volta do loop real do jogo" steps=${moveFlowSteps} />
+
+        <h3>Sinta na mão</h3>
+        <p>Este tabuleiro roda a mesma semântica de slide/merge do nosso engine (um merge por peça por jogada,${" "}
+          flag <code>changed</code> em jogadas ilegais, spawn 90/10). Jogue alguns movimentos.</p>
+        <${Game2048} pauseSpawn=${false} caption="Nosso jogo, jogável — mesmas regras do game/movement.py" />
+
+        <details>
+          <summary>Duas armadilhas do repo que vale conhecer (30 segundos)</summary>
+          <p><strong>1. Nunca rode <code>python -m unittest discover</code>.</strong> <code>tests/test_ui.py</code> é um script
+            manual de pygame que abre um loop de menu no import — o discover importa ele e trava pra sempre. Rode os arquivos de teste
+            individualmente (ex.: <code>python3 tests/test_renderer.py</code>).</p>
+          <p><strong>2. Convenção de branch.</strong> Cada pessoa programa na própria branch
+            (ex.: <code>max-node</code>, <code>praneet</code>, <code>Chance-node---Ryan</code>) e faz merge pro${" "}
+            <code>main</code>. Releia os arquivos depois de qualquer pull — a working tree muda debaixo de você num repo compartilhado.</p>
+        </details>
+
+        <hr/>
+
+        <h2 id="s2">2 · O destino</h2>
+        <p>Tudo no Milestone 2 é uma frase:</p>
+        <div class="callout good">
+          <p style=${{margin:0,fontSize:'1.05rem'}}><strong>Trocar o chute escrito à mão da <code>evaluate()</code> por uma
+          value function que o programa aprende jogando contra si mesmo.</strong> O engine e a busca expectimax ficam exatamente
+          como estão.</p>
+        </div>
+        <p>Hoje, quando a busca chega numa folha, ela pontua o tabuleiro com${" "}
+          <code>100 × empty_cells + max_tile</code> — um chute escrito à mão de que "espaço é bom, peças grandes são boas."
+          Funciona até certo ponto (peça 256–512), mas é cego pra estrutura: não consegue saber que peças grandes ficam melhor num
+          canto, que linhas monótonas são mais seguras, que alguns tabuleiros abertos são armadilhas. O Milestone 2 troca o chute por uma
+          função que descobriu esses padrões sozinha, ao longo de milhões de jogos jogados contra si mesma.</p>
+        <p>Aprender bom comportamento por tentativa e erro, em vez de por um professor entregando as respostas,
+          é um campo inteiro com um nome: <strong>Reinforcement Learning (RL)</strong>. É a sombrinha embaixo da qual o M2 vive,
+          e a razão do TA querer isso — é o tópico do curso. Daqui pra frente é tudo maquinaria de RL.</p>
+
+        <h3>Primeiro, o vocabulário</h3>
+        <p>Um punhado de palavras e um símbolo aparecem em toda página abaixo. Fixe eles uma vez aqui e o resto lê
+          fácil:</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>termo</th><th>o que significa, concretamente no 2048</th></tr></thead>
+          <tbody>
+            <tr><td><strong>state</strong> <${TeX} tex="s"/></td><td>uma posição do tabuleiro — o grid 4×4 de peças que o agente está olhando agora.</td></tr>
+            <tr><td><strong>action</strong></td><td>um dos quatro movimentos: esquerda, direita, cima, baixo.</td></tr>
+            <tr><td><strong>reward</strong> <${TeX} tex="r"/></td><td>os pontos que um movimento faz — a soma das peças que juntaram naquele movimento. É esse o número que o agente está no fim das contas tentando acumular.</td></tr>
+            <tr><td><strong>value function</strong> <${TeX} tex="V"/></td><td>uma função que pega um tabuleiro e retorna um único número estimando o quão bom ele é — grosso modo, "quantos pontos espero ganhar daqui até o fim do jogo." <${TeX} tex="V(s)"/> é alto pra tabuleiros promissores, baixo pra quase mortos. <strong>O M2 inteiro é sobre aprender um bom <${TeX} tex="V"/>.</strong> Hoje a <code>evaluate()</code> é um <${TeX} tex="V"/> cru escrito à mão; a n-tuple network será um aprendido.</td></tr>
+            <tr><td><strong>MDP</strong></td><td>Markov Decision Process — o nome formal pra um jogo definido por estados, ações, rewards, e como o mundo responde. É só o livro de regras do 2048 escrito no vocabulário de RL; o loop do <code>main.py</code> (observa → escolhe → aplica → repete) é uma caminhada por ele.</td></tr>
+          </tbody>
+        </table></div>
+        <p>O que segurar é o <${TeX} tex="V"/>. Toda técnica abaixo ou está <em>usando</em> <${TeX} tex="V"/>
+          pra escolher um movimento (expectimax), decidindo <em>onde</em> o <${TeX} tex="V"/> mora (n-tuple network), ou
+          <em>melhorando</em> o <${TeX} tex="V"/> pela experiência (TD learning).</p>
+
+        <h3>As quatro técnicas</h3>
+        <p>Com o <${TeX} tex="V"/> na mão, aqui estão as quatro palavras que são jogadas por aí — esta tabela vale
+          decorar antes da reunião:</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>peça</th><th>o que é</th><th>a função dela</th><th>status</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Expectimax</strong></td><td>busca (não é RL)</td><td>escolhe o movimento olhando à frente numa árvore max/chance</td><td><span class="statuschip chip-done">construído</span></td></tr>
+            <tr><td><strong>RL</strong></td><td>o paradigma</td><td>"aprender o valor das coisas pela experiência, sem professor"</td><td><span class="statuschip chip-todo">sombrinha do M2</span></td></tr>
+            <tr><td><strong>N-tuple network</strong></td><td>representação</td><td><em>onde</em> o valor aprendido mora (lookup tables)</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+            <tr><td><strong>TD learning</strong> <span class="faint">(Temporal Difference)</span></td><td>algoritmo de treino</td><td><em>como</em> o valor é corrigido, movimento a movimento</td><td><span class="statuschip chip-todo">M2</span></td></tr>
+          </tbody>
+        </table></div>
+        <p>A âncora que impede n-tuple e TD de se embolarem: <strong>a n-tuple network é o aluno,
+          o TD é o método de estudo.</strong> Um é a coisa que guarda o conhecimento; o outro é o procedimento que
+          o corrige. Troque a n-tuple por uma rede neural — aluno diferente, mesmo método. Troque o TD por Monte Carlo —
+          método diferente, mesmo aluno. São camadas diferentes, então nunca competem.</p>
+        <${Mermaid} caption="A arquitetura final. Setas sólidas = hora de jogar. O loop de aprendizado (embaixo) escreve as tabelas que a busca lê."
+          chart=${`graph TD
+  G[Game engine] -->|state| A[ExpectimaxAgent.choose_action]
+  A -->|best action| G
+  A --> M[max_node - agente maximiza]
+  M --> C[chance_node - spawn com média]
+  C --> M
+  C --> L[folha: avalia tabuleiro]
+  N[N-tuple network] -.->|M2 troca a heurística| L
+  T[TD learning - self-play] -->|escreve entradas da tabela| N`} />
+        <${Quiz} data=${QUIZ_DESTINATION} title="Checkpoint" />
+
+        <hr/>
+
+        <h2 id="s3">3 · Expectimax, entendido direito</h2>
+        <p>A gente já construiu isso, então esta seção é curta em "como implementar" e longa em "garanta que você consegue defender
+          isso," porque o TA marcou e o relatório do M2 tem que discutir.</p>
+        <p>Antes de todo movimento real, o agente simula futuros em <em>cópias</em> do tabuleiro: "se eu for pra esquerda, então uma
+          peça nasce em algum lugar, então minha melhor resposta é…" Essa simulação mental é uma árvore com dois tipos alternados
+          de níveis:</p>
+        <p><strong>Nós MAX</strong> são as vezes do agente. Ele controla a escolha, então pega o <em>melhor</em> filho —
+          o máximo. <strong>Nós CHANCE</strong> são as vezes do ambiente. Ninguém escolhe: um 2 (90%) ou um 4 (10%)
+          cai numa célula vazia uniformemente aleatória. O resumo honesto de um lance de dado é a${" "}
+          <em>média ponderada pela probabilidade</em> dos desfechos — o valor esperado. Daí o nome:${" "}
+          <strong>Expecti</strong>(mated chance) + <strong>max</strong>(imizing agent).</p>
+        <p>Por que não um nó MIN, como no minimax do xadrez? (Minimax é a busca clássica de dois jogadores onde você alterna
+          níveis MAX pra você e níveis MIN pra um oponente.) Porque min modela um <em>adversário</em> — algo
+          que vê sua
+          posição e escolhe o pior caso pra você de propósito. O gerador de peças do 2048 não olha pra nada; ele rola
+          dados. Modele dados como malícia e você ganha um agente paranoico que recusa boas linhas arriscadas. Veja acontecer com números
+          reais:</p>
+        <${ExpectimaxExplorer} />
+        <p>Notas de implementação sobre o que está no <code>main</code> agora, porque o relatório vai precisar delas:</p>
+        <p><strong>Profundidade conta níveis max.</strong> <code>max_node</code> decrementa a profundidade no passo max→chance;
+          <code>chance_node</code> passa adiante. Profundidade 2 significa "meu movimento, spawn, meu movimento, spawn, avalia."
+          (Um desses níveis é chamado de <em>ply</em> — então "3-ply" abaixo só significa olhar três movimentos à frente.)
+          <strong>Amostragem:</strong> um nó chance completo tem (células vazias × 2 valores) filhos — até 28 ramos, o que
+          explode com a profundidade. O nosso amostra no máximo 10 células vazias e reajusta os pesos, trocando um pouco de precisão na
+          esperança por muita velocidade. <strong>Jogadas ilegais</strong> são puladas via a flag <code>changed</code>,
+          e um tabuleiro sem jogada legal é terminal e é avaliado direto.</p>
+        <p>A figura de um-movimento acima basta pra definir a mecânica, mas ela esconde por que profundidade vale a pena: em
+          profundidade 1 o agente julga um movimento só pelo tabuleiro em que ele cai, então um movimento cujo payoff real é um merge um passo
+          depois parece inútil. Aqui está uma posição real onde buscar um segundo movimento mais fundo <em>reverte</em> a escolha.</p>
+        <${DepthTwoWalkthrough} />
+        <${Quiz} data=${QUIZ_EXPECTIMAX} title="Checkpoint" />
+
+        <hr/>
+
+        <h2 id="s4">4 · O afterstate</h2>
+        <p>Este é o conceito mais importante do design do M2, e a boa notícia é que o nosso código já
+          computa ele — a gente só nunca deu o nome.</p>
+        <p>Um movimento no 2048 tem três estágios:</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>estágio</th><th>tabuleiro</th><th>quem determina</th></tr></thead>
+          <tbody>
+            <tr><td>1 · state <${TeX} tex="s"/></td><td>o que o agente vê</td><td>o histórico</td></tr>
+            <tr><td>2 · afterstate <${TeX} tex="s'"/></td><td>logo após o slide/merge, antes da peça aleatória</td><td><strong>totalmente determinado</strong> por (state, action)</td></tr>
+            <tr><td>3 · next state <${TeX} tex="s''"/></td><td>depois que a peça aleatória cai</td><td>os dados</td></tr>
+          </tbody>
+        </table></div>
+        <p>Fato verificado sobre o nosso repo: <code>movement.py</code> retorna o estágio 2. O spawn acontece separado, dentro do${" "}
+          <code>Game.move</code>. Então o grid que <code>max_node</code> entrega pro <code>chance_node</code> <em>é</em> o
+          afterstate. Observe a fronteira entre determinismo e acaso — jogue um movimento, e o jogo congela no
+          afterstate até você soltar os dados:</p>
+        <${Game2048} pauseSpawn=${true} caption="Modo afterstate: todo movimento pausa no estágio 2, antes da aleatoriedade" />
+        <p>Por que aprender <${TeX} tex="V(\\text{afterstate})"/> em vez de <${TeX} tex="V(\\text{state})"/>? Porque decidir
+          fica trivial e barato. Pra escolher um movimento você computa, pra cada ação legal, o reward que ela faz mais o
+          valor do afterstate que ela produz, e fica com a ação de maior total (essa operação de "fica com o argumento que
+          maximiza" se escreve <${TeX} tex="\\arg\\max"/>):</p>
+        <${TeX} block tex="\\text{escolhe } \\arg\\max_{a\\,\\text{legal}} \\;\\big[\\, r(s,a) + V(\\text{afterstate}(s,a)) \\,\\big]" />
+        <p>Os dois termos são determinísticos — sem enumerar spawns possíveis na hora de decidir, sem probabilidades de transição
+          necessárias. Quatro afterstates, quatro lookups, feito.</p>
+        <div class="callout warn">
+          <p class="ct">Objeção comum: "mas aí o agente ignora a aleatoriedade!"</p>
+          <p style=${{margin:0}}>Não ignora. Ele se recusa a prever a peça <em>específica</em> — mas o <em>efeito médio</em>${" "}
+            da aleatoriedade é assado dentro do <${TeX} tex="V"/> automaticamente, porque o treino TD observa milhões de spawns
+            reais e as consequências deles fluem de volta pro valor dos afterstates que os precederam. Um afterstate
+            que tende a ser destruído por spawns azarados simplesmente acaba com um valor aprendido baixo.
+            Não prever os dados ≠ ignorar os dados.</p>
+        </div>
+
+        <hr/>
+
+        <h2 id="s5">5 · N-tuple network</h2>
+        <p>Apesar do nome, isto <strong>não é uma rede neural</strong>. Não há camadas, nem neurônios, nem
+          ativações, nem batches, nem forward pass. É um conjunto de <strong>lookup tables</strong>, e essa simplicidade
+          é uma vantagem: é rápido o bastante pra ser chamado milhões de vezes durante o treino, e dá pra construir do
+          zero em numpy — que é exatamente o que o TA pediu ("o aprendizado tem que ser de vocês").</p>
+        <h3>O problema que essa estrutura de dados resolve</h3>
+        <p>Precisamos de uma função que pega um tabuleiro e retorna um score aprendido — e ela tem que ser absurdamente rápida, porque
+          o treino vai chamar ela milhões de vezes. O lookup mais rápido que um computador faz é ler um slot de um array
+          simples: <code>table[i]</code>. Mas um array é indexado por um <em>número</em>, e o que temos é um${" "}
+          <em>padrão de peças</em>. Então o design inteiro se reduz a uma pergunta:${" "}
+          <strong>como transformar um padrão de células num único número, de modo que todo padrão possível ganhe seu
+          próprio slot privado num array?</strong> Tudo abaixo é a resposta, um passo de cada vez.</p>
+
+        <h3>Passo 1 · observe algumas células, não o tabuleiro inteiro</h3>
+        <p>Pontuar tabuleiros inteiros diretamente é sem esperança — existem cerca de 10¹⁶ tabuleiros distintos de 2048, mais do que
+          poderíamos jamais visitar, quanto mais guardar um score pra cada um. Então pontuamos <em>pedaços</em> do tabuleiro em vez disso. Uma${" "}
+          <strong>tupla</strong> não é nada mais que um conjunto fixo de posições que concordamos em observar juntas. Por exemplo,
+          "row 0" é a tupla feita das quatro células (0,0), (0,1), (0,2), (0,3) — a linha de cima. Quatro células têm poucas
+          possibilidades de conteúdo pra guardar todas, e ainda assim capturam estrutura local real: uma linha monótona, uma peça
+          grande sentada num canto, uma parede de pares combináveis.</p>
+
+        <h3>Passo 2 · transforme cada célula num número pequeno</h3>
+        <p>Agora olhe pro que pode estar <em>dentro</em> de uma célula. No 2048 toda peça é uma potência de dois:
+          2 = 2¹, 4 = 2², 8 = 2³, … até 32768 = 2¹⁵. Então em vez de registrar o valor de face de uma peça, registramos${" "}
+          <strong>qual potência de dois ela é</strong> — o exponente dela — e usamos 0 pra célula vazia:</p>
+        <p style=${{textAlign:'center'}}><code>vazia → 0 · 2 → 1 · 4 → 2 · 8 → 3 · 16 → 4 · … · 32768 → 15</code></p>
+        <p>Nada de profundo aconteceu aqui — só re-rotulamos as peças pelo seu rank. O que ganhamos é que toda célula
+          agora é um número de 0 a 15: <strong>exatamente dezesseis possibilidades por célula</strong>. Guarde esse "dezesseis"
+          na cabeça; ele está prestes a importar.</p>
+
+        <h3>Passo 3 · empacote os quatro números num único número</h3>
+        <p>Aqui está o passo que parece um truque na primeira vez que você vê — só que você usa ele a vida
+          inteira. Quando você lê o número decimal comum 4.387, você entende ele automaticamente como</p>
+        <${TeX} block tex="4{,}387 \\;=\\; 7\\cdot 1 \\,+\\, 8\\cdot 10 \\,+\\, 3\\cdot 100 \\,+\\, 4\\cdot 1000" />
+        <p>Quatro dígitos, cada um com <em>dez</em> valores possíveis, cada posição valendo a próxima potência de 10. É isso tudo
+          que a notação posicional é: uma receita pra empacotar vários números pequenos num número grande de modo que nenhuma dupla de
+          combinações jamais colida. A nossa tupla é a mesma situação exata com uma mudança — cada um dos nossos "dígitos"
+          (o exponente de uma célula) tem <em>dezesseis</em> valores possíveis, não dez. Então as posições valem potências de 16
+          em vez de potências de 10:</p>
+        <${TeX} block tex="\\text{índice} \\;=\\; e_0 \\,+\\, e_1\\cdot 16 \\,+\\, e_2\\cdot 16^2 \\,+\\, e_3\\cdot 16^3" />
+        <p>Concretamente: se a row 0 segura as peças [8, 4, 2, 2], os exponentes são [3, 2, 1, 1], e</p>
+        <${TeX} block tex="\\text{índice} \\;=\\; 3 \\,+\\, 2\\cdot 16 \\,+\\, 1\\cdot 256 \\,+\\, 1\\cdot 4096 \\;=\\; 4{,}387" />
+        <p>Dois fatos tornam essa numeração <em>perfeita</em>. Primeiro, padrões diferentes nunca podem compartilhar um índice —
+          mude qualquer célula e você muda um dígito, o que muda o número, pelo mesmo motivo que 4.387 ≠ 4.397.
+          Segundo, nenhum número é desperdiçado: os índices preenchem exatamente o intervalo 0 … 16⁴ − 1 = 65.535, um número pra cada
+          um dos 65.536 conteúdos possíveis de quatro células.</p>
+
+        <h3>Passo 4 · a tabela</h3>
+        <p>Um padrão agora é um número. Então guardar "um score aprendido pra todo padrão possível" não precisa de nada mais chique
+          que <strong>um array com 65.536 slots</strong> — um slot por padrão, um array por tupla. Ler o
+          score de um padrão = computar o índice (três multiplicações, três somas), ler o slot. Esse custo é
+          o motivo dessa estrutura sobreviver a milhões de chamadas durante o treino sem GPU.</p>
+        <p>Veja o caminho inteiro — células → exponentes → índice → slot — ao vivo. Clique nas células destacadas pra mudar
+          os valores delas, e note que exatamente um dígito do índice muda cada vez:</p>
+        <${IndexAnatomy} />
+
+        <h3>Passo 5 · o valor de um tabuleiro é a soma dos scores das suas tuplas</h3>
+        <p>Uma tupla vê só as próprias células — é uma especialista de visão de túnel. Pra julgar o tabuleiro inteiro usamos${" "}
+          <em>muitas</em> tuplas (a demo abaixo usa as 8 linhas e colunas; o design completo adiciona nove quadrados 2×2 pra
+          17). Cada especialista consulta seu score na própria tabela, e o valor do tabuleiro é simplesmente a
+          <em>soma</em> do que elas reportam (abaixo, <${TeX} tex="\\text{LUT}_i"/> significa "a lookup table da tupla <${TeX} tex="i"/>"):</p>
+        <${TeX} block tex="V(\\text{board}) \\;=\\; \\sum_i \\text{LUT}_i\\big[\\,\\text{idx}_i(\\text{board})\\,\\big]" />
+        <${NTupleDemo} />
+        <h3>O que é em código</h3>
+        <p>Tire a terminologia e a "network" é constrangedoramente simples. Esta é a estrutura de dados inteira:</p>
+        <div class="mono">a network inteira na memória:
+
+tables ← um array flat de 65.536 números, por tupla   (17 tuplas → 17 arrays)
+
+    tables[row0][0]      = valor de ver [vazia, vazia, vazia, vazia] ali
+    tables[row0][4.387]  = valor de ver [8, 4, 2, 2] ali
+    tables[row0][65.535] = valor de ver [32768, 32768, 32768, 32768] ali
+
+tudo inicializado em 0 — o agente começa sem opiniões.
+treinar = editar números nesses arrays. é isso que "aprender" significa aqui.</div>
+        <h3>O truque da simetria</h3>
+        <p>As regras do 2048 não se importam com orientação: rotacione o tabuleiro e o jogo é o mesmo jogo. Então o valor aprendido
+          de um padrão não deveria depender de pra que lado ele acontece de apontar — e a gente explora isso fazendo todas as 8
+          rotações/reflexões consultarem as <em>mesmas tabelas compartilhadas</em>:</p>
+        <${SymmetryDemo} />
+        <p>Opções concretas de arquitetura (isso responde o pedido de "arquitetura da network" do TA):</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>configuração</th><th>tabelas</th><th>entradas</th><th>memória (float32)</th><th>veredito</th></tr></thead>
+          <tbody>
+            <tr><td>4 linhas + 4 colunas + 9 quadrados 2×2 (17 tuplas de 4)</td><td>17</td><td>~1,1 M</td><td>~4,5 MB</td><td>comece aqui — treina em minutos</td></tr>
+            <tr><td>4 tuplas de 6 células (retângulos 2×3)</td><td>4</td><td>~67 M</td><td>~270 MB</td><td>o setup do paper forte; upgrade se der tempo</td></tr>
+          </tbody>
+        </table></div>
+        <p>O módulo é pequeno — a interface inteira em pseudocódigo:</p>
+        <div class="mono">NTupleNetwork:
+    value(grid) → número
+        pra cada tupla, pra cada uma das 8 simetrias do grid:
+            leia a entrada no índice daquela tupla
+        retorne a soma de tudo que foi lido
+
+    update(grid, delta)
+        adicione delta / (número de entradas lidas)
+        exatamente às entradas que value(grid) leria
+
+    save(path) / load(path)   — as tabelas são só arrays no disco</div>
+        <p>Esse <code>update</code> é por que n-tuples combinam tão bem com TD: como o valor é uma soma simples, "o gradiente"
+          é trivial — corrigir o valor significa adicionar <code>delta / n_tuples</code> a cada entrada que foi consultada.
+          Sem backprop, sem framework, sem GPU.</p>
+        <${Quiz} data=${QUIZ_NTUPLE} title="Checkpoint" />
+
+        <hr/>
+
+        <h2 id="s6">6 · TD learning</h2>
+        <p>TD = temporal difference. A ideia inteira numa linha: <strong>minha estimativa agora deveria concordar com
+          (o reward que acabei de ganhar + minha estimativa um passo depois); se não concordar, empurre ela na direção da diferença.</strong></p>
+        <p>O loop de treino (a variante <em>TD-afterstate</em> — a que venceu nas comparações publicadas),
+          em pseudocódigo:</p>
+        <div class="mono">um episódio de treino (self-play):
+
+reseta o jogo
+enquanto o jogo não acabou:
+    1 · jogue greedy usando a value function atual
+        action    ← a jogada legal que maximiza  reward + V(afterstate)
+        s_after   ← afterstate daquela jogada          (determinístico)
+        aplique a jogada, gere a peça aleatória         (tabuleiro vira s″)
+
+    2 · lookahead de um passo a partir de s″ dá o alvo de treino
+        r_next, s_after_next ← a melhor jogada greedy vista a partir de s″
+
+    3 · erro de diferença temporal, depois o empurrão
+        delta ← (r_next + V(s_after_next)) − V(s_after)
+        atualize a network em s_after por  α · delta</div>
+        <p>O único símbolo novo ali é o <${TeX} tex="\\alpha"/> (alpha), a <strong>learning rate</strong>: um número
+          pequeno que controla quão forte cada correção empurra o valor — um <${TeX} tex="\\alpha"/> grande dá saltos
+          ousados, um pequeno dá empurrões cautelosos. Sinta o que ele faz. Esta demo treina uma única estimativa de valor rumo a um
+          alvo ruidoso (o ruído faz o papel de "cada jogo se desenrola diferente"):</p>
+        <${TDDemo} />
+        <p>Números práticos pra nossa implementação: comece o <${TeX} tex="\\alpha"/> em torno de 0,0025–0,01 (dividido pelas
+          tuplas dentro do <code>update</code>); se a curva de treino oscilar, abaixe. Volume: dezenas a centenas de
+          milhares de jogos — com lookups em numpy isso é minutos a algumas horas num laptop, sem GPU. Registre o score médio
+          a cada 1.000 jogos e salve checkpoints; <strong>a curva de treino subindo acima da baseline aleatória é o
+          feito nº1 do relatório do M2, com o plot como evidência.</strong></p>
+        <p>Note o que o loop de treino <em>não</em> usa: expectimax. O treino joga movimentos greedy baratos de 1-ply porque
+          volume importa mais que qualidade por movimento enquanto aprende. A busca profunda volta na hora de jogar, em cima
+          das tabelas prontas.</p>
+
+        <hr/>
+
+        <h2 id="s7">7 · Integração</h2>
+        <p>Depois do treino, conectar as duas metades do projeto é literalmente uma troca na folha da busca:</p>
+        <div class="mono">hoje (M1):
+    evaluate(board) → 100 × (número de células vazias) + (maior peça)
+                      um chute escrito à mão
+
+depois do M2:
+    evaluate(board) → pergunta o valor pra n-tuple network treinada
+                      um julgamento aprendido</div>
+        <p>Nada mais se mexe. <code>max_node</code> ainda maximiza, <code>chance_node</code> ainda tira a média — mas as
+          folhas agora são pontuadas por uma função que aprendeu estratégia de 2048 pela experiência em vez de chutar.
+          É por isso que a arquitetura aprovada é elegante: M1 e M2 se acoplam sem refactoring.</p>
+        <p>E as duas metades multiplicam uma à outra. Resultados publicados com essa stack exata
+          (Szubert & Jaśkowski 2014; Matsuzaki 2021):</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>jogador</th><th>score médio</th><th>chega em 2048</th></tr></thead>
+          <tbody>
+            <tr><td>agente aleatório (nossa baseline)</td><td>~1k</td><td>~0%</td></tr>
+            <tr><td>expectimax + heurística à mão (nós, hoje)</td><td>chega nas peças 256–512</td><td>baixo</td></tr>
+            <tr><td>n-tuple treinada, greedy 1-ply, sem busca</td><td>~228k</td><td>~97%</td></tr>
+            <tr><td>mesma n-tuple + expectimax 3-ply</td><td>~407k</td><td>>97%, chega em 8192+</td></tr>
+          </tbody>
+        </table></div>
+        <p>Leia as duas últimas linhas com atenção: a value function aprendida faz o trabalho pesado, e a busca
+          multiplica ela (+80% de score pra profundidade 3 sobre profundidade 1). Comparar profundidades 1/2/3 com a mesma network treinada é${" "}
+          <strong>o feito nº2 do relatório</strong> — uma tabela, evidência forte, quase de graça depois que as peças existem.</p>
+
+        <hr/>
+
+        <h2 id="s8">8 · Quem faz o quê</h2>
+        <p>O guia de correção do M2 quer três feitos-chave, <em>cada um com prova</em> (screenshot, plot, código),
+          mais um recap, desafios (~½ página), e mudanças-em-relação-à-proposta (~½ página). Então a divisão abaixo é desenhada
+          em torno de uma regra: <strong>toda peça tem que produzir evidência pro relatório, não só código.</strong></p>
+        <p>Uma nota estrutural primeiro, honestamente: um rascunho anterior da divisão do M2 tinha papéis como design de hidden layer,
+          contagem de neurônios, ReLU vs LeakyReLU, tamanho de batch. Esses são papéis de deep neural network (deep-NN), e nenhum desses
+          conceitos existe
+          na arquitetura n-tuple que combinamos (§5 — sem camadas, sem ativações, sem batches). As peças abaixo são as
+          reais. A NN (rede neural) em si sobrevive como o <em>ablation</em> esticado na peça 2/4 (um ablation = um
+          experimento controlado de "e se a gente tirasse essa parte"): uma rede pequena treinada nos mesmos dados,
+          reportada honestamente ("ela pontuou abaixo da n-tuple, como a literatura previu") — o que é um resultado legítimo e
+          citável, não um fracasso.</p>
+        <div style=${{overflowX:'auto'}}><table>
+          <thead><tr><th>peça</th><th>entregável</th><th>prova pro relatório</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1 · N-tuple network</strong><br/><span class="faint">representação</span></td>
+              <td><code>NTupleNetwork</code>: tuplas, indexação base-16, 8 simetrias, <code>value()</code>, <code>update()</code>, save/load</td>
+              <td>unit test provando que todas as 8 simetrias de um tabuleiro dão o mesmo valor; benchmark de lookups/seg</td></tr>
+            <tr><td><strong>2 · Loop de treino TD</strong><br/><span class="faint">aprendizado</span></td>
+              <td>loop greedy de self-play + updates TD-afterstate, logging, checkpoints, tuning de α</td>
+              <td><strong>a curva de treino</strong> cruzando a baseline do agente aleatório</td></tr>
+            <tr><td><strong>3 · Integração + busca</strong><br/><span class="faint">o jogador forte</span></td>
+              <td><code>evaluate()</code> → n-tuple; proteja o contrato do grid; comparação de profundidade 1/2/3</td>
+              <td><strong>a tabela score × profundidade</strong> com a mesma network treinada</td></tr>
+            <tr><td><strong>4 · Avaliação + demo + relatório</strong><br/><span class="faint">evidência</span></td>
+              <td>harness de eval (random vs greedy-ntuple vs expectimax-ntuple ao longo de N jogos: score médio, peça máxima, win rate); plots matplotlib; demo pygame; esqueleto do relatório</td>
+              <td>os plots de comparação finais + a demo ao vivo de 7/ago</td></tr>
+          </tbody>
+        </table></div>
+        <p><strong>Dependências e calendário</strong> (M2 due 29/jul — cerca de 2,5 semanas):</p>
+        <p><strong>Semana 1 (13–19/jul).</strong>${" "}Peças 1 e 2 andam juntas — TD não roda sem a network,
+          então esses dois donos conversam todo dia; é o par mais pesado. Peça 4 pode construir o harness de eval inteiro agora, usando
+          a <code>evaluate()</code> heurística de hoje como substituto. Peça 3 prepara a troca e o harness de profundidade.</p>
+        <p><strong>Semana 2 (20–26/jul).</strong>${" "}Rodadas de treino reais, integração ligada, tabela de profundidade medida,
+          plots feitos.</p>
+        <p><strong>Reta final (27–29/jul).</strong>${" "}O relatório — três feitos com suas evidências,
+          desafios, e a mudança documentada NN → n-tuple citando o feedback do TA e a literatura.</p>
+        <div class="callout good">
+          <p class="ct">Decisões pra fechar na reunião</p>
+          <p style=${{margin:0}}>1 · Ratificar o contrato da interface: <strong>agentes recebem o grid numpy cru</strong>${" "}
+            (já corrigido no <code>main.py</code>, 9/jul — isto é sobre manter). 2 · Confirmar as quatro peças e botar nomes nelas.
+            3 · Confirmar que a NN vira um ablation esticado, e que a mudança seja escrita na
+            seção de mudanças-em-relação-à-proposta. 4 · Combinar a cadência de sync da semana 1 pro par das peças 1+2.</p>
+        </div>
+
+        <hr/>
+
+        <h2 id="s9">9 · Checagem final</h2>
+        <p>Três perguntas que atravessam tudo acima. Se você consegue responder estas, você consegue defender o projeto
+          pro TA — ou um pro outro.</p>
+        <${Quiz} data=${QUIZ_FINAL} title="Cumulativa" />
+
+        <hr/>
+        <h2>Fontes</h2>
+        <p class="muted" style=${{fontSize:'.92rem'}}>
+          Szubert & Jaśkowski (2014), <em>Temporal Difference Learning of N-Tuple Networks for the Game 2048</em>, IEEE CIG —
+          o resultado canônico que o nosso M2 segue (n-tuple TD-afterstate, ~97% de win rate, sem busca em árvore).
+          Jaśkowski (2016), <em>Mastering 2048 with Delayed Temporal Coherence Learning…</em> (arXiv:1604.05085) —
+          framework de afterstate e análise de profundidade de expectimax. Matsuzaki (2021) — comparação de value-network confirmando
+          que n-tuples ganham de deep nets no 2048 na maioria dos casos. Fatos do repo (status dos módulos, o fix do contrato do grid, timings)
+          verificados diretamente contra a nossa branch <code>main</code> em 9/jul/2026. Feedback do TA citado da proposta corrigida.
+          Todas as figuras nesta página são computadas ao vivo pela própria página; a tabela de resultados publicados vem dos papers citados.</p>
+        <p class="faint">Feito por João (com o Charles) pro CMPT 310 Grupo 1 · Summer 2026.</p>
+      </div>
+      <//>`;
+    }
+    createRoot(document.getElementById('root')).render(html`<${Guide} />`);
+  </script>
+</body>
+</html>
